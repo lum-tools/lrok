@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # Download frpc binaries for all platforms
@@ -10,40 +10,27 @@ mkdir -p "$BIN_DIR"
 
 echo "📦 Downloading frpc v${VERSION} for all platforms..."
 
-# Platform mappings: frp_format -> our_format
-declare -A platforms=(
-    ["darwin_amd64"]="frpc_darwin_amd64"
-    ["darwin_arm64"]="frpc_darwin_arm64"
-    ["linux_amd64"]="frpc_linux_amd64"
-    ["linux_arm64"]="frpc_linux_arm64"
-    ["windows_amd64"]="frpc_windows_amd64.exe"
-)
-
-for frp_platform in "${!platforms[@]}"; do
-    output_name="${platforms[$frp_platform]}"
+# Function to download and extract a platform
+download_platform() {
+    local frp_platform=$1
+    local output_name=$2
+    local ext=$3
     
     echo "  → ${frp_platform}..."
     
-    # Determine archive extension
-    if [[ "$frp_platform" == windows* ]]; then
-        ext="zip"
-    else
-        ext="tar.gz"
-    fi
-    
-    archive="frp_${VERSION}_${frp_platform}.${ext}"
-    url="${BASE_URL}/${archive}"
+    local archive="frp_${VERSION}_${frp_platform}.${ext}"
+    local url="${BASE_URL}/${archive}"
     
     # Download
     curl -sL "$url" -o "/tmp/${archive}"
     
     # Extract frpc binary
-    if [[ "$ext" == "zip" ]]; then
+    if [ "$ext" = "zip" ]; then
         unzip -q "/tmp/${archive}" -d /tmp/
-        binary_path="/tmp/frp_${VERSION}_${frp_platform}/frpc.exe"
+        local binary_path="/tmp/frp_${VERSION}_${frp_platform}/frpc.exe"
     else
         tar -xzf "/tmp/${archive}" -C /tmp/
-        binary_path="/tmp/frp_${VERSION}_${frp_platform}/frpc"
+        local binary_path="/tmp/frp_${VERSION}_${frp_platform}/frpc"
     fi
     
     # Move to bins directory with our naming
@@ -54,7 +41,14 @@ for frp_platform in "${!platforms[@]}"; do
     rm -rf "/tmp/${archive}" "/tmp/frp_${VERSION}_${frp_platform}"
     
     echo "  ✅ ${output_name}"
-done
+}
+
+# Download all platforms
+download_platform "windows_amd64" "frpc_windows_amd64.exe" "zip"
+download_platform "linux_amd64" "frpc_linux_amd64" "tar.gz"
+download_platform "darwin_amd64" "frpc_darwin_amd64" "tar.gz"
+download_platform "darwin_arm64" "frpc_darwin_arm64" "tar.gz"
+download_platform "linux_arm64" "frpc_linux_arm64" "tar.gz"
 
 echo ""
 echo "✅ All frpc binaries downloaded to ${BIN_DIR}/"
