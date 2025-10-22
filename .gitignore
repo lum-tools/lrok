@@ -1,5 +1,5 @@
-# Binaries
-lrok
+# Binaries (only in root, not cmd/lrok directory)
+/lrok
 *.exe
 *.dll
 *.so
