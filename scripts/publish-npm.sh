@@ -25,9 +25,8 @@ sed -i "s/\"version\": \".*\"/\"version\": \"${VERSION}\"/" package.json
 # Configure npm authentication
 echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
 
-# Copy LICENSE and README from root
+# Copy LICENSE from root
 cp ../../LICENSE .
-cp README.md .
 
 # Publish
 npm publish --access public
