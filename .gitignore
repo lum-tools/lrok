@@ -10,9 +10,6 @@ dist/
 *.test
 *.out
 
-# Go
-go.sum
-
 # IDE
 .vscode/
 .idea/
