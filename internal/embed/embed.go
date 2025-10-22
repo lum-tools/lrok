@@ -17,20 +17,15 @@ func GetFrpcPath() (string, error) {
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
 	
+	// Only Linux binaries are embedded to reduce size and CI costs
 	var binaryName string
 	switch {
-	case goos == "darwin" && goarch == "amd64":
-		binaryName = "frpc_darwin_amd64"
-	case goos == "darwin" && goarch == "arm64":
-		binaryName = "frpc_darwin_arm64"
 	case goos == "linux" && goarch == "amd64":
 		binaryName = "frpc_linux_amd64"
 	case goos == "linux" && goarch == "arm64":
 		binaryName = "frpc_linux_arm64"
-	case goos == "windows" && goarch == "amd64":
-		binaryName = "frpc_windows_amd64.exe"
 	default:
-		return "", fmt.Errorf("unsupported platform: %s/%s", goos, goarch)
+		return "", fmt.Errorf("unsupported platform: %s/%s - only Linux (amd64/arm64) is currently supported", goos, goarch)
 	}
 	
 	// Read embedded binary
