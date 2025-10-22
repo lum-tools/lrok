@@ -1,0 +1,36 @@
+# Binaries
+lrok
+*.exe
+*.dll
+*.so
+*.dylib
+dist/
+
+# Test binaries
+*.test
+*.out
+
+# Go
+go.sum
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.log
+*.tmp
+
+# Don't ignore frpc binaries (we want to commit them)
+!internal/embed/bins/frpc_*
+
+
+# Environment
+.env

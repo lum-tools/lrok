@@ -1,0 +1,32 @@
+{
+  "name": "lrok",
+  "version": "1.0.0",
+  "description": "Expose local services with readable tunnel names - powered by lum.tools",
+  "keywords": ["tunnel", "ngrok", "frp", "reverse-proxy", "https", "lum.tools"],
+  "homepage": "https://lum.tools",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lum-tools/lrok.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lum-tools/lrok/issues"
+  },
+  "license": "MIT",
+  "author": "lum.tools <ops@lum.tools>",
+  "bin": {
+    "lrok": "./bin/lrok"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "files": [
+    "bin/",
+    "install.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=14"
+  }
+}
+

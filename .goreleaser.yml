@@ -1,0 +1,79 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - ./scripts/download-frpc.sh
+
+builds:
+  - id: lrok
+    main: ./cmd/lrok
+    binary: lrok
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.FullCommit}}
+      - -X main.date={{.Date}}
+
+archives:
+  - id: lrok
+    format: tar.gz
+    name_template: "lrok_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+
+# Homebrew disabled for now
+# brews:
+#   - name: lrok
+#     repository:
+#       owner: lum-tools
+#       name: homebrew-tap
+
+nfpms:
+  - id: lrok
+    package_name: lrok
+    vendor: lum.tools
+    homepage: https://lum.tools
+    maintainer: lum.tools <ops@lum.tools>
+    description: Expose local services with readable tunnel names
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    file_name_template: "lrok_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+release:
+  github:
+    owner: lum-tools
+    name: lrok
+  draft: false
+  prerelease: auto
+  mode: replace
+

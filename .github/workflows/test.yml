@@ -1,0 +1,43 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.22']
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Download frpc binaries
+        run: ./scripts/download-frpc.sh
+        shell: bash
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Build
+        run: go build -v ./cmd/lrok
+
+      - name: Test binary
+        run: ./lrok version
+        shell: bash
+        if: runner.os != 'Windows'
+      
+      - name: Test binary (Windows)
+        run: ./lrok.exe version
+        shell: bash
+        if: runner.os == 'Windows'
+
