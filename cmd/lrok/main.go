@@ -227,12 +227,12 @@ Or pass it directly:
 		}
 		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 		
-		if verified {
-			fmt.Println("\n✅ Tunnel is ready and verified!")
-		} else {
-			fmt.Println("\n⏳ Tunnel is connecting... (may take a few more seconds)")
-		}
-		fmt.Println("   Open the dashboard to inspect requests in real-time!\n")
+	if verified {
+		fmt.Println("\n✅ Tunnel is ready and verified!")
+	} else {
+		fmt.Println("\n⏳ Tunnel is connecting... (may take a few more seconds)")
+	}
+	fmt.Println("   Open the dashboard to inspect requests in real-time!")
 	}()
 
 	return mgr.StartWithGracefulShutdown()
