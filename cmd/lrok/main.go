@@ -42,8 +42,9 @@ Examples:
   lrok 8000                    # Expose port 8000 with random name
   lrok 8000 --name my-app      # Expose with custom name
   lrok 3000 --subdomain api    # Use subdomain instead`,
-	Args: cobra.MaximumNArgs(1),
-	RunE: runTunnel,
+	Args:    cobra.MaximumNArgs(1),
+	Version: versionInfo,
+	RunE:    runTunnel,
 }
 
 var httpCmd = &cobra.Command{
@@ -55,8 +56,9 @@ var httpCmd = &cobra.Command{
 }
 
 var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Show version information",
+	Use:     "version",
+	Aliases: []string{"v"},
+	Short:   "Show version information",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("lrok version %s\n", versionInfo)
 		fmt.Printf("commit: %s\n", commit)
