@@ -72,6 +72,108 @@ var versionCmd = &cobra.Command{
 	},
 }
 
+var loginCmd = &cobra.Command{
+	Use:   "login [API_KEY]",
+	Short: "Save API key to config file",
+	Long: `Save your lum.tools platform API key to ~/.lrok/config.toml
+
+This allows you to use lrok without setting environment variables.
+
+Get your API key from: https://platform.lum.tools/keys`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		apiKey := args[0]
+		
+		// Validate API key format
+		if !strings.HasPrefix(apiKey, "lum_") {
+			return fmt.Errorf("invalid API key format (should start with 'lum_')")
+		}
+		
+		// Save to config
+		if err := config.SaveAPIKey(apiKey); err != nil {
+			return fmt.Errorf("failed to save API key: %w", err)
+		}
+		
+		configPath, _ := config.GetConfigPath()
+		fmt.Println("✅ API key saved successfully!")
+		fmt.Printf("   Config: %s\n", configPath)
+		fmt.Println()
+		fmt.Println("You can now run lrok without setting LUM_API_KEY:")
+		fmt.Println("   lrok 8000")
+		
+		return nil
+	},
+}
+
+var logoutCmd = &cobra.Command{
+	Use:   "logout",
+	Short: "Remove saved API key",
+	Long:  `Remove the API key from ~/.lrok/config.toml`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := config.ClearConfig(); err != nil {
+			return fmt.Errorf("failed to logout: %w", err)
+		}
+		
+		fmt.Println("✅ Logged out successfully!")
+		fmt.Println("   API key removed from config")
+		
+		return nil
+	},
+}
+
+var whoamiCmd = &cobra.Command{
+	Use:   "whoami",
+	Short: "Show current API key configuration",
+	Long:  `Display information about the currently configured API key`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Try to get API key from different sources
+		var apiKey string
+		var source string
+		
+		// Check flag (if this was called with --api-key)
+		if apiKey == "" {
+			apiKey = os.Getenv("LUM_API_KEY")
+			if apiKey != "" {
+				source = "environment variable (LUM_API_KEY)"
+			}
+		}
+		
+		// Check config file
+		if apiKey == "" {
+			if key, err := config.GetAPIKey(); err == nil {
+				apiKey = key
+				configPath, _ := config.GetConfigPath()
+				source = fmt.Sprintf("config file (%s)", configPath)
+			}
+		}
+		
+		if apiKey == "" {
+			fmt.Println("❌ Not logged in")
+			fmt.Println()
+			fmt.Println("To login:")
+			fmt.Println("   lrok login <your-api-key>")
+			fmt.Println()
+			fmt.Println("Or set environment variable:")
+			fmt.Println("   export LUM_API_KEY='lum_your_key'")
+			fmt.Println()
+			fmt.Println("Get your API key: https://platform.lum.tools/keys")
+			return nil
+		}
+		
+		// Show prefix only for security
+		prefix := apiKey
+		if len(apiKey) > 16 {
+			prefix = apiKey[:16] + "..." + apiKey[len(apiKey)-4:]
+		}
+		
+		fmt.Println("✅ Logged in")
+		fmt.Printf("   API Key: %s\n", prefix)
+		fmt.Printf("   Source:  %s\n", source)
+		
+		return nil
+	},
+}
+
 func init() {
 	// Flags for root command
 	rootCmd.Flags().IntVarP(&port, "port", "p", 0, "Local port to expose (optional if provided as argument)")
@@ -89,6 +191,9 @@ func init() {
 
 	rootCmd.AddCommand(httpCmd)
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(loginCmd)
+	rootCmd.AddCommand(logoutCmd)
+	rootCmd.AddCommand(whoamiCmd)
 }
 
 func runTunnel(cmd *cobra.Command, args []string) error {
@@ -122,26 +227,45 @@ Usage:
 Run 'lrok --help' for more examples.`)
 	}
 
-	// Get API key from flag or environment
+	// Get API key with priority: flag > env var > config file
+	var apiKeySource string
+	
 	if apiKey == "" {
+		// Try environment variable
 		apiKey = os.Getenv("LUM_API_KEY")
 		if apiKey == "" {
 			apiKey = os.Getenv("FRP_API_KEY") // Legacy support
 		}
+		if apiKey != "" {
+			apiKeySource = "environment variable"
+		}
+	} else {
+		apiKeySource = "--api-key flag"
+	}
+
+	// Try config file if still not found
+	if apiKey == "" {
+		if key, err := config.GetAPIKey(); err == nil {
+			apiKey = key
+			apiKeySource = "config file (~/.lrok/config.toml)"
+		}
 	}
 
 	if apiKey == "" {
-		return fmt.Errorf(`❌ No API key provided!
+		return fmt.Errorf(`❌ No API key configured!
 
 You need a lum.tools platform API key to use lrok.
 
-📝 To get your API key:
+📝 Get your API key:
    1. Visit: https://platform.lum.tools/keys
    2. Login with your account
    3. Create a new API key
    4. Copy your API key (starts with 'lum_')
 
-💡 Then set it as an environment variable:
+💡 Save it with login command (recommended):
+   lrok login lum_your_api_key_here
+
+Or use environment variable:
    export LUM_API_KEY='lum_your_api_key_here'
 
 Or pass it directly:
@@ -152,6 +276,9 @@ Or pass it directly:
 		fmt.Println("⚠️  Warning: API key should start with 'lum_'")
 		fmt.Println("   Make sure you're using a valid platform API key from https://platform.lum.tools/keys")
 	}
+	
+	// Show API key source for transparency (debug mode or verbose)
+	_ = apiKeySource // Used for debugging, currently unused in output
 
 	// Determine subdomain
 	tunnelName := name
