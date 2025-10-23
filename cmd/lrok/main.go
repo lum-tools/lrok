@@ -13,13 +13,14 @@ import (
 	"github.com/lum-tools/lrok/internal/names"
 	"github.com/lum-tools/lrok/internal/proxy"
 	"github.com/lum-tools/lrok/internal/tunnel"
+	"github.com/lum-tools/lrok/internal/version"
 	"github.com/spf13/cobra"
 )
 
 var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
+	versionInfo = "dev"
+	commit      = "none"
+	date        = "unknown"
 )
 
 var (
@@ -57,9 +58,15 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show version information",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("lrok version %s\n", version)
+		fmt.Printf("lrok version %s\n", versionInfo)
 		fmt.Printf("commit: %s\n", commit)
 		fmt.Printf("built: %s\n", date)
+		
+		// Check for updates (non-blocking)
+		if hasUpdate, latest, method, err := version.CheckForUpdate(versionInfo); err == nil && hasUpdate {
+			fmt.Println()
+			version.ShowUpdateWarning(versionInfo, latest, method)
+		}
 	},
 }
 
@@ -83,6 +90,13 @@ func init() {
 }
 
 func runTunnel(cmd *cobra.Command, args []string) error {
+	// Check for updates in background (non-blocking)
+	go func() {
+		if hasUpdate, latest, method, err := version.CheckForUpdate(versionInfo); err == nil && hasUpdate {
+			version.ShowUpdateWarning(versionInfo, latest, method)
+		}
+	}()
+	
 	// Get port from args or flag
 	if len(args) > 0 {
 		// Port provided as argument (e.g., "lrok 8000")
