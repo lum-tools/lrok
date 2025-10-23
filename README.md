@@ -90,19 +90,32 @@ Download the latest binary from [GitHub Releases](https://github.com/lum-tools/l
 
 **Note**: lum.tools is 100% free with no usage limits. We don't ask for credit cards.
 
-### 2. Set Your API Key
+### 2. Login with Your API Key
+
+**Recommended:** Save your API key to config file (like `docker login`, `gh auth login`):
+
+```bash
+lrok login lum_your_api_key_here
+```
+
+This saves your key to `~/.lrok/config.toml` so you never have to set it again!
+
+**Alternative:** Use environment variable (still supported):
 
 ```bash
 export LUM_API_KEY='lum_your_api_key_here'
+
+# Make it permanent (optional)
+echo 'export LUM_API_KEY="lum_your_key"' >> ~/.bashrc  # or ~/.zshrc
 ```
 
-Make it permanent by adding to your shell config:
-```bash
-# For bash
-echo 'export LUM_API_KEY="lum_your_key"' >> ~/.bashrc
+**Check your auth status:**
 
-# For zsh
-echo 'export LUM_API_KEY="lum_your_key"' >> ~/.zshrc
+```bash
+lrok whoami
+# → ✅ Logged in
+#    API Key: lum_abc123...xyz
+#    Source: config file (~/.lrok/config.toml)
 ```
 
 ### 3. Start Tunneling
@@ -281,11 +294,38 @@ All traffic is encrypted end-to-end. The local dashboard intercepts requests for
 - All activity is logged and trackable
 - Rotate API keys anytime at [platform.lum.tools/keys](https://platform.lum.tools/keys)
 
+## Authentication Commands
+
+Manage your API key credentials:
+
+```bash
+# Login (saves key to ~/.lrok/config.toml)
+lrok login lum_your_api_key_here
+
+# Check authentication status
+lrok whoami
+
+# Logout (removes saved key)
+lrok logout
+```
+
+**API Key Priority:**
+1. `--api-key` flag (highest priority, allows temporary override)
+2. `LUM_API_KEY` environment variable
+3. `~/.lrok/config.toml` file (saved via `lrok login`)
+
+**Security:** Config file is created with `0600` permissions (owner-only read/write).
+
 ## Troubleshooting
 
-### "No API key provided"
+### "No API key configured"
 
-Set your API key:
+Login with your API key:
+```bash
+lrok login lum_your_key
+```
+
+Or use environment variable:
 ```bash
 export LUM_API_KEY='lum_your_key'
 ```
@@ -295,6 +335,7 @@ export LUM_API_KEY='lum_your_key'
 - Verify your key at [platform.lum.tools/keys](https://platform.lum.tools/keys)
 - Ensure it starts with `lum_`
 - Check for extra spaces or quotes
+- Try running `lrok whoami` to check current auth
 
 ### Connection Issues
 
