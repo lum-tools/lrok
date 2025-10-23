@@ -29,7 +29,7 @@ jobs:
           version: latest
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.ORG_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Publish to npm
         run: ./scripts/publish-npm.sh
