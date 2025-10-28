@@ -3,10 +3,7 @@ package tests
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"strconv"
 	"testing"
-	"time"
 
 	"github.com/lum-tools/lrok/internal/config"
 	"github.com/stretchr/testify/assert"
