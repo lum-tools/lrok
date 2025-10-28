@@ -1,0 +1,8 @@
+LICENSE
+MANIFEST.in
+README.md
+setup.py
+lrok.egg-info/PKG-INFO
+lrok.egg-info/SOURCES.txt
+lrok.egg-info/dependency_links.txt
+lrok.egg-info/top_level.txt
