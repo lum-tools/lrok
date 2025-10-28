@@ -51,6 +51,10 @@ Done! Your local server is now accessible at a public HTTPS URL. 🎉
 - **⚡ Zero Configuration**: Works out of the box with lum.tools infrastructure
 - **🌍 Cross-Platform**: Single binary for macOS, Linux, and Windows
 - **📦 Self-Contained**: No additional dependencies to install
+- **🔌 Multiple Protocols**: Support for HTTP, TCP, STCP, and XTCP tunnels
+- **🔐 Secure Tunnels**: STCP and XTCP for encrypted, private connections
+- **⚡ P2P Mode**: XTCP for direct client-to-client connections
+- **📊 Advanced Monitoring**: Protocol-specific statistics and Prometheus metrics
 
 ## Installation
 
@@ -160,28 +164,41 @@ lrok <port> [flags]
 lrok - Expose local servers to the internet
 
 Usage:
-  lrok [port]                 Quick tunnel with random name
+  lrok [port]                 Quick HTTP tunnel with random name
   lrok http [port] [flags]    HTTP tunnel with options
+  lrok tcp <port> [flags]     TCP tunnel for direct port forwarding
+  lrok stcp <port> [flags]    Secret TCP tunnel (requires visitor)
+  lrok xtcp <port> [flags]    P2P tunnel for direct client connections
+  lrok visitor <name> [flags] Connect to STCP/XTCP tunnel as visitor
   lrok version                Show version information
   lrok help                   Show help
 
 Examples:
   lrok 8000                   Expose port 8000 with random name
   lrok 3000 -n my-app         Expose port 3000 as my-app.t.lum.tools
-  lrok http 8080 --name api   Explicit HTTP tunnel
+  lrok tcp 5432 --remote-port 10001    Expose PostgreSQL on port 10001
+  lrok stcp 22 --secret-key my-secret  Secure SSH tunnel
+  lrok xtcp 8080 --secret-key p2p-key  P2P web server tunnel
 
 Flags:
   -n, --name string        Custom tunnel name (generates random if not provided)
       --subdomain string   Alias for --name
   -k, --api-key string     API key (or set LUM_API_KEY env var)
       --ip string          Local IP address (default: 127.0.0.1)
+      --remote-port int     Remote port on server (TCP only)
+      --secret-key string   Pre-shared secret key (STCP/XTCP only)
+      --encrypt            Enable encryption (TCP/STCP only)
+      --compress           Enable compression (TCP/STCP only)
+      --bandwidth string    Bandwidth limit (e.g., 1MB, 500KB)
+      --health-check        Enable health checks (TCP only)
   -h, --help               Show help
 ```
 
 ## Examples
 
-### Expose a Development Server
+### HTTP Tunnels (Web Services)
 
+#### Expose a Development Server
 ```bash
 # Start your dev server
 npm run dev  # Running on port 3000
@@ -193,8 +210,7 @@ lrok 3000 -n my-project
 # Dashboard: http://localhost:4242
 ```
 
-### Webhook Testing
-
+#### Webhook Testing
 ```bash
 # Start local webhook server
 python -m http.server 8000
@@ -210,33 +226,110 @@ lrok 8000
 # Watch requests live in the dashboard!
 ```
 
-### Demo a Local App
+### TCP Tunnels (Direct Port Forwarding)
 
+#### Expose PostgreSQL Database
 ```bash
-# Start your app
-./my-app --port 5000
+# Start PostgreSQL (running on port 5432)
+sudo systemctl start postgresql
 
-# Share with a memorable name
-lrok 5000 -n demo
+# Create TCP tunnel
+lrok tcp 5432 --remote-port 10001
 
-# Send to client: https://demo.t.lum.tools
-# They can access it instantly, no VPN or firewall config needed
+# Connect from anywhere:
+# psql -h frp.lum.tools -p 10001 -U myuser mydb
+```
+
+#### Expose SSH Server
+```bash
+# Start SSH server (running on port 22)
+sudo systemctl start ssh
+
+# Create TCP tunnel with encryption
+lrok tcp 22 --remote-port 10002 --encrypt --compress
+
+# SSH from anywhere:
+# ssh -p 10002 user@frp.lum.tools
+```
+
+#### Expose Redis Server
+```bash
+# Start Redis (running on port 6379)
+redis-server
+
+# Create TCP tunnel
+lrok tcp 6379 --remote-port 10003
+
+# Connect from anywhere:
+# redis-cli -h frp.lum.tools -p 10003
+```
+
+### STCP Tunnels (Secret TCP - Secure Access)
+
+#### Secure Database Access
+```bash
+# Server side: Expose PostgreSQL securely
+lrok stcp 5432 --secret-key my-secret-key --encrypt --compress
+
+# Client side: Connect as visitor
+lrok visitor tunnel-name --type stcp --secret-key my-secret-key --bind-port 5432
+
+# Now connect locally:
+# psql -h 127.0.0.1 -p 5432 -U myuser mydb
+```
+
+#### Secure SSH Access
+```bash
+# Server side: Expose SSH securely
+lrok stcp 22 --secret-key ssh-secret-123
+
+# Client side: Connect as visitor
+lrok visitor tunnel-name --type stcp --secret-key ssh-secret-123 --bind-port 2222
+
+# SSH locally:
+# ssh -p 2222 user@127.0.0.1
+```
+
+### XTCP Tunnels (P2P - Direct Connection)
+
+#### P2P File Transfer
+```bash
+# Server side: Expose file server via P2P
+lrok xtcp 8080 --secret-key p2p-file-transfer
+
+# Client side: Connect as visitor
+lrok visitor tunnel-name --type xtcp --secret-key p2p-file-transfer --bind-port 8080
+
+# Access locally: http://127.0.0.1:8080
+# If P2P fails, falls back to server relay automatically
+```
+
+#### P2P Web Development
+```bash
+# Developer side: Expose dev server via P2P
+lrok xtcp 3000 --secret-key dev-p2p-key
+
+# Client side: Connect as visitor
+lrok visitor tunnel-name --type xtcp --secret-key dev-p2p-key --bind-port 3000
+
+# Access locally: http://127.0.0.1:3000
+# Direct connection for better performance
 ```
 
 ### Multiple Tunnels (Different Terminals)
 
 ```bash
-# Terminal 1: Frontend
+# Terminal 1: HTTP Frontend
 lrok 3000 -n frontend
 # → https://frontend.t.lum.tools
 
-# Terminal 2: Backend API
-lrok 8000 -n backend
-# → https://backend.t.lum.tools
+# Terminal 2: TCP Backend API
+lrok tcp 8000 --remote-port 10001
+# → frp.lum.tools:10001
 
-# Terminal 3: Database Admin UI
-lrok 5432 -n db-admin
-# → https://db-admin.t.lum.tools
+# Terminal 3: Secure Database
+lrok stcp 5432 --secret-key db-secret
+# → Requires visitor connection
 ```
 
 ### Inspect HTTP Traffic

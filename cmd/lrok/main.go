@@ -190,6 +190,10 @@ func init() {
 	httpCmd.Flags().StringVar(&localIP, "ip", "127.0.0.1", "Local IP to bind to")
 
 	rootCmd.AddCommand(httpCmd)
+	rootCmd.AddCommand(tcpCmd)
+	rootCmd.AddCommand(stcpCmd)
+	rootCmd.AddCommand(xtcpCmd)
+	rootCmd.AddCommand(visitorCmd)
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
