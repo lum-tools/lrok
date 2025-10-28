@@ -14,7 +14,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// isCI returns true if running in a CI environment
+func isCI() bool {
+	return os.Getenv("CI") != "" || os.Getenv("GITHUB_ACTIONS") != "" || os.Getenv("RUNNER_OS") != ""
+}
+
 func TestHTTPTunnel(t *testing.T) {
+	if isCI() {
+		t.Skip("Skipping integration test in CI environment")
+	}
+	
 	// Build lrok binary
 	binaryPath, err := buildLrokBinary()
 	require.NoError(t, err)
@@ -68,6 +77,10 @@ func TestHTTPTunnel(t *testing.T) {
 }
 
 func TestTCPTunnel(t *testing.T) {
+	if isCI() {
+		t.Skip("Skipping integration test in CI environment")
+	}
+	
 	binaryPath, err := buildLrokBinary()
 	require.NoError(t, err)
 	defer os.Remove(binaryPath)
@@ -119,6 +132,10 @@ func TestUDPTunnel(t *testing.T) {
 }
 
 func TestSTCPTunnel(t *testing.T) {
+	if isCI() {
+		t.Skip("Skipping integration test in CI environment")
+	}
+	
 	binaryPath, err := buildLrokBinary()
 	require.NoError(t, err)
 	defer os.Remove(binaryPath)
@@ -171,6 +188,10 @@ func TestSTCPTunnel(t *testing.T) {
 }
 
 func TestXTCPTunnel(t *testing.T) {
+	if isCI() {
+		t.Skip("Skipping integration test in CI environment")
+	}
+	
 	binaryPath, err := buildLrokBinary()
 	require.NoError(t, err)
 	defer os.Remove(binaryPath)

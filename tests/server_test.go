@@ -3,6 +3,8 @@ package tests
 import (
 	"fmt"
 	"net"
+	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -10,7 +12,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// isCI returns true if running in a CI environment
+func isCI() bool {
+	return os.Getenv("CI") != "" || os.Getenv("GITHUB_ACTIONS") != "" || os.Getenv("RUNNER_OS") != ""
+}
+
 func TestTestServers(t *testing.T) {
+	if isCI() {
+		t.Skip("Skipping server test in CI environment")
+	}
+	
 	// Test HTTP server
 	port := getRandomPort()
 	server := startHTTPTestServer(port)

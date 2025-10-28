@@ -7,13 +7,22 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"time"
 )
 
 // buildLrokBinary builds the CLI binary to a temporary location and returns the path
 func buildLrokBinary() (string, error) {
-	// Create temporary file
-	tmpFile, err := os.CreateTemp("", "lrok-test-*")
+	// Create temporary file with proper extension for Windows
+	var tmpFile *os.File
+	var err error
+	
+	if runtime.GOOS == "windows" {
+		tmpFile, err = os.CreateTemp("", "lrok-test-*.exe")
+	} else {
+		tmpFile, err = os.CreateTemp("", "lrok-test-*")
+	}
+	
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
