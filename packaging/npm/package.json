@@ -20,7 +20,6 @@
     "postinstall": "node install.js"
   },
   "files": [
-    "bin/",
     "install.js",
     "README.md",
     "LICENSE"
