@@ -19,6 +19,13 @@ echo "📦 Publishing lrok v${VERSION} to PyPI..."
 
 cd packaging/pypi
 
+# Check if package already exists
+if pip index versions lrok 2>/dev/null | grep -q "${VERSION}"; then
+    echo "⚠️  Package lrok==${VERSION} already exists on PyPI"
+    echo "✅ Skipping PyPI publication (already published)"
+    exit 0
+fi
+
 # Update setup.py version
 sed -i "s/VERSION = \".*\"/VERSION = \"${VERSION}\"/" setup.py
 

@@ -35,11 +35,25 @@ jobs:
         run: ./scripts/publish-npm.sh
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        continue-on-error: true
+          GITHUB_REF: ${{ github.ref }}
 
       - name: Publish to PyPI
         run: ./scripts/publish-pypi.sh
         env:
           PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        continue-on-error: true
+          GITHUB_REF: ${{ github.ref }}
+
+      - name: Verify npm publication
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "🔍 Verifying npm package lrok@${VERSION}..."
+          npm view lrok@${VERSION} version
+          echo "✅ npm package verified"
+
+      - name: Verify PyPI publication
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "🔍 Verifying PyPI package lrok==${VERSION}..."
+          pip install lrok==${VERSION} --dry-run
+          echo "✅ PyPI package verified"
 

@@ -19,6 +19,13 @@ echo "📦 Publishing lrok v${VERSION} to npm..."
 
 cd packaging/npm
 
+# Check if package already exists
+if npm view lrok@${VERSION} version >/dev/null 2>&1; then
+    echo "⚠️  Package lrok@${VERSION} already exists on npm"
+    echo "✅ Skipping npm publication (already published)"
+    exit 0
+fi
+
 # Update package.json version
 sed -i "s/\"version\": \".*\"/\"version\": \"${VERSION}\"/" package.json
 
