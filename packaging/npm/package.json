@@ -11,6 +11,9 @@
   "bugs": {
     "url": "https://github.com/lum-tools/lrok/issues"
   },
+  "funding": {
+    "url": "https://blog.lum.tools"
+  },
   "license": "MIT",
   "author": "lum.tools <ops@lum.tools>",
   "bin": {

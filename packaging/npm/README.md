@@ -33,6 +33,7 @@ Full documentation: [github.com/lum-tools/lrok](https://github.com/lum-tools/lro
 
 - Platform: [platform.lum.tools](https://platform.lum.tools)
 - Dashboard: [platform.lum.tools/tunnels](https://platform.lum.tools/tunnels)
+- Blog: [blog.lum.tools](https://blog.lum.tools)
 - GitHub: [github.com/lum-tools/lrok](https://github.com/lum-tools/lrok)
 
 ## License

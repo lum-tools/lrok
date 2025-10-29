@@ -449,6 +449,7 @@ MIT License - see LICENSE file
 - Platform: [platform.lum.tools](https://platform.lum.tools)
 - Tunnels Dashboard: [platform.lum.tools/tunnels](https://platform.lum.tools/tunnels)
 - API Keys: [platform.lum.tools/keys](https://platform.lum.tools/keys)
+- Blog: [blog.lum.tools](https://blog.lum.tools)
 - GitHub: [github.com/lum-tools/lrok](https://github.com/lum-tools/lrok)
 
 ---

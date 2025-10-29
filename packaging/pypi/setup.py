@@ -94,6 +94,8 @@ setup(
         "Bug Tracker": "https://github.com/lum-tools/lrok/issues",
         "Platform": "https://platform.lum.tools",
         "Dashboard": "https://platform.lum.tools/tunnels",
+        "Blog": "https://blog.lum.tools",
+        "Homepage": "https://lum.tools",
     },
     license="MIT",
     classifiers=[
