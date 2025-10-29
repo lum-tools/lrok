@@ -1,10 +1,11 @@
 Metadata-Version: 2.4
 Name: lrok
-Version: 1.0.0
+Version: 0.1.4
 Summary: Expose local services with readable tunnel names
 Home-page: https://github.com/lum-tools/lrok
 Author: lum.tools
 Author-email: ops@lum.tools
+License: MIT
 Project-URL: Bug Tracker, https://github.com/lum-tools/lrok/issues
 Project-URL: Platform, https://platform.lum.tools
 Project-URL: Dashboard, https://platform.lum.tools/tunnels
@@ -12,7 +13,6 @@ Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
 Classifier: Topic :: Internet
 Classifier: Topic :: System :: Networking
-Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python :: 3
 Classifier: Programming Language :: Python :: 3.7
 Classifier: Programming Language :: Python :: 3.8
@@ -29,6 +29,7 @@ Dynamic: classifier
 Dynamic: description
 Dynamic: description-content-type
 Dynamic: home-page
+Dynamic: license
 Dynamic: license-file
 Dynamic: project-url
 Dynamic: requires-python

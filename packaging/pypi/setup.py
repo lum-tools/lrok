@@ -10,7 +10,7 @@ from pathlib import Path
 from setuptools import setup
 from setuptools.command.install import install
 
-VERSION = "1.0.0"
+VERSION = "0.1.4"
 
 PLATFORM_MAP = {
     "Darwin": "darwin",
@@ -95,12 +95,12 @@ setup(
         "Platform": "https://platform.lum.tools",
         "Dashboard": "https://platform.lum.tools/tunnels",
     },
+    license="MIT",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Topic :: Internet",
         "Topic :: System :: Networking",
-        "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
