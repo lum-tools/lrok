@@ -3,7 +3,7 @@
 Expose your local services to the internet with HTTPS and readable URLs.
 
 ```bash
-lrok tunnel --port 8000
+lrok 8000
 # → https://happy-dolphin.t.lum.tools
 ```
 
@@ -22,7 +22,7 @@ npm install -g lrok
    ```
 3. Start a tunnel:
    ```bash
-   lrok tunnel --port 8000
+   lrok 8000
    ```
 
 ## Documentation
