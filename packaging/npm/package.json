@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Expose local services with readable tunnel names - powered by lum.tools",
   "keywords": ["tunnel", "ngrok", "frp", "reverse-proxy", "https", "lum.tools"],
-  "homepage": "https://lum.tools",
+  "homepage": "https://platform.lum.tools",
   "repository": {
     "type": "git",
     "url": "https://github.com/lum-tools/lrok.git"

@@ -95,7 +95,7 @@ setup(
         "Platform": "https://platform.lum.tools",
         "Dashboard": "https://platform.lum.tools/tunnels",
         "Blog": "https://blog.lum.tools",
-        "Homepage": "https://lum.tools",
+        "Homepage": "https://platform.lum.tools",
     },
     license="MIT",
     classifiers=[

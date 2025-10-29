@@ -1,6 +1,6 @@
 # lrok - Expose Local Servers to the Internet
 
-**lrok** (short for *lum-rok*) is a fast, secure tunnel service that exposes your localhost to the internet with HTTPS and human-readable URLs — like ngrok, but built on [lum.tools](https://lum.tools) infrastructure.
+**lrok** (short for *lum-rok*) is a fast, secure tunnel service that exposes your localhost to the internet with HTTPS and human-readable URLs — like ngrok, but built on [platform.lum.tools](https://platform.lum.tools) infrastructure.
 
 ```bash
 lrok 8000
@@ -454,5 +454,5 @@ MIT License - see LICENSE file
 
 ---
 
-**Made with ❤️ by [lum.tools](https://lum.tools)**
+**Made with ❤️ by [platform.lum.tools](https://platform.lum.tools)**
 
