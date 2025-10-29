@@ -36,3 +36,4 @@ echo "Testing npm publish (dry run)..."
 npm publish --dry-run
 
 echo "✅ npm publication test passed"
+

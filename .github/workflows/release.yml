@@ -54,6 +54,7 @@ jobs:
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "🔍 Verifying PyPI package lrok==${VERSION}..."
+          pip install -U packaging
           pip install lrok==${VERSION} --dry-run
           echo "✅ PyPI package verified"
 

@@ -34,6 +34,7 @@ cp ../../LICENSE .
 
 # Install build dependencies
 pip install build twine
+pip install -U packaging
 
 # Build package
 python -m build
