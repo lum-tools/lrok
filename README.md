@@ -170,6 +170,7 @@ Usage:
   lrok stcp <port> [flags]    Secret TCP tunnel (requires visitor)
   lrok xtcp <port> [flags]    P2P tunnel for direct client connections
   lrok visitor <name> [flags] Connect to STCP/XTCP tunnel as visitor
+  lrok subdomains             Manage reserved subdomains
   lrok version                Show version information
   lrok help                   Show help
 
@@ -179,6 +180,8 @@ Examples:
   lrok tcp 5432 --remote-port 10001    Expose PostgreSQL on port 10001
   lrok stcp 22 --secret-key my-secret  Secure SSH tunnel
   lrok xtcp 8080 --secret-key p2p-key  P2P web server tunnel
+  lrok subdomains list        List your reserved subdomains
+  lrok subdomains reserve myapp  Reserve a subdomain
 
 Flags:
   -n, --name string        Custom tunnel name (generates random if not provided)
@@ -408,6 +411,38 @@ lrok logout
 3. `~/.lrok/config.toml` file (saved via `lrok login`)
 
 **Security:** Config file is created with `0600` permissions (owner-only read/write).
+
+## Reserved Subdomains
+
+Reserve permanent tunnel URLs that only you can use. Each user can reserve up to 5 subdomains.
+
+```bash
+# List your reserved subdomains
+lrok subdomains list
+
+# Reserve a subdomain (claim it permanently)
+lrok subdomains reserve my-app
+# → Now only YOU can use my-app.t.lum.tools
+
+# Release a subdomain (make it available again)
+lrok subdomains delete my-app
+```
+
+**Why reserve subdomains?**
+- **Consistent URLs**: Always use the same URL for your projects
+- **Exclusive access**: No one else can use your reserved subdomains
+- **Professional appearance**: Use meaningful names like `api.t.lum.tools` or `demo.t.lum.tools`
+
+**How it works:**
+- When you use a subdomain (e.g., `lrok 8000 -n myapp`), it's automatically reserved for you
+- Reserved subdomains can only be used by your API key
+- You can manage reservations via CLI or web UI at [lrok.lum.tools/subdomains](https://lrok.lum.tools/subdomains)
+
+```bash
+# Use your reserved subdomain
+lrok 8000 -n my-app
+# → https://my-app.t.lum.tools (guaranteed to be yours)
+```
 
 ## Troubleshooting
 
