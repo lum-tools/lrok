@@ -198,6 +198,7 @@ func init() {
 	rootCmd.AddCommand(loginCmd)
 	rootCmd.AddCommand(logoutCmd)
 	rootCmd.AddCommand(whoamiCmd)
+	rootCmd.AddCommand(subdomainsCmd)
 }
 
 func runTunnel(cmd *cobra.Command, args []string) error {
