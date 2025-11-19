@@ -1,6 +1,6 @@
 {
   "name": "lrok",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Expose local services with readable tunnel names - powered by lum.tools",
   "keywords": ["tunnel", "ngrok", "frp", "reverse-proxy", "https", "lum.tools"],
   "homepage": "https://platform.lum.tools",
