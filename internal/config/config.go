@@ -14,19 +14,20 @@ const (
 
 // TunnelConfig represents the configuration for a tunnel
 type TunnelConfig struct {
-	ServerAddr      string
-	ServerPort      int
-	APIKey          string
-	LocalPort       int
-	LocalIP         string
-	Subdomain       string
-	ProxyType       string // http, tcp, stcp, xtcp
-	RemotePort      int    // For TCP tunnels
-	SecretKey       string // For STCP/XTCP tunnels
-	BandwidthLimit  string // e.g., "1MB", "500KB"
-	UseEncryption   bool
-	UseCompression  bool
-	HealthCheckType string // tcp, http
+	ServerAddr        string
+	ServerPort        int
+	APIKey            string
+	LocalPort         int
+	LocalIP           string
+	Subdomain         string
+	ExplicitSubdomain bool   // True if user explicitly specified --subdomain or --name
+	ProxyType         string // http, tcp, stcp, xtcp
+	RemotePort        int    // For TCP tunnels
+	SecretKey         string // For STCP/XTCP tunnels
+	BandwidthLimit    string // e.g., "1MB", "500KB"
+	UseEncryption     bool
+	UseCompression    bool
+	HealthCheckType   string // tcp, http
 }
 
 // GenerateTOML creates a frpc TOML configuration file and returns the path
@@ -49,6 +50,11 @@ func GenerateTOML(cfg *TunnelConfig) (string, error) {
 		fmt.Sprintf(`metadatas.api_key = "%s"`, cfg.APIKey),
 		fmt.Sprintf(`metadatas.local_port = "%d"`, cfg.LocalPort),
 		fmt.Sprintf(`metadatas.proxy_type = "%s"`, cfg.ProxyType),
+	}
+
+	// Add explicit_subdomain flag if user explicitly specified subdomain
+	if cfg.ExplicitSubdomain {
+		metadataLines = append(metadataLines, `metadatas.explicit_subdomain = "true"`)
 	}
 	
 	if cfg.RemotePort > 0 {

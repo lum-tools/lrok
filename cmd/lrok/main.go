@@ -202,12 +202,10 @@ func init() {
 }
 
 func runTunnel(cmd *cobra.Command, args []string) error {
-	// Check for updates in background (non-blocking)
-	go func() {
-		if hasUpdate, latest, method, err := version.CheckForUpdate(versionInfo); err == nil && hasUpdate {
-			version.ShowUpdateWarning(versionInfo, latest, method)
-		}
-	}()
+	// Check for updates and prompt user before starting tunnel
+	if err := version.PromptForUpdate(versionInfo); err != nil {
+		return err
+	}
 	
 	// Get port from args or flag
 	if len(args) > 0 {
@@ -285,13 +283,18 @@ Or pass it directly:
 	// Show API key source for transparency (debug mode or verbose)
 	_ = apiKeySource // Used for debugging, currently unused in output
 
-	// Determine subdomain
+	// Determine subdomain and track if explicitly specified
 	tunnelName := name
+	explicitSubdomain := false
 	if subdomain != "" {
 		tunnelName = subdomain
+		explicitSubdomain = true
+	} else if name != "" {
+		explicitSubdomain = true
 	}
 	if tunnelName == "" {
 		tunnelName = names.Generate()
+		// explicitSubdomain remains false for randomly generated names
 	}
 
 	tunnelURL := fmt.Sprintf("https://%s.t.lum.tools", tunnelName)
@@ -304,15 +307,16 @@ Or pass it directly:
 		return fmt.Errorf("failed to start proxy: %w", err)
 	}
 	defer prox.Stop()
-	
+
 	fmt.Printf("✅ Proxy ready on port %d (forwarding to %d)\n", proxyPort, port)
 
 	// Generate config with proxy port (frpc forwards to proxy, proxy forwards to user app)
 	cfg := &config.TunnelConfig{
-		APIKey:    apiKey,
-		LocalPort: proxyPort,
-		LocalIP:   localIP,
-		Subdomain: tunnelName,
+		APIKey:            apiKey,
+		LocalPort:         proxyPort,
+		LocalIP:           localIP,
+		Subdomain:         tunnelName,
+		ExplicitSubdomain: explicitSubdomain,
 	}
 
 	configPath, err := config.GenerateTOML(cfg)
@@ -375,15 +379,28 @@ Or pass it directly:
 		}
 		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 		
-	if verified {
-		fmt.Println("\n✅ Tunnel is ready and verified!")
-	} else {
-		fmt.Println("\n⏳ Tunnel is connecting... (may take a few more seconds)")
-	}
-	fmt.Println("   Open the dashboard to inspect requests in real-time!")
+		if verified {
+			fmt.Println("\n✅ Tunnel is ready and verified!")
+		} else {
+			fmt.Println("\n⏳ Tunnel is connecting... (may take a few more seconds)")
+		}
+		fmt.Println("   Open the dashboard to inspect requests in real-time!")
 	}()
 
-	return mgr.StartWithGracefulShutdown()
+	if err := mgr.StartWithGracefulShutdown(); err != nil {
+		if err == tunnel.ErrSubdomainLimit {
+			fmt.Println()
+			fmt.Println("❌ Subdomain limit reached: You have reached the maximum of 5 reserved subdomains")
+			fmt.Println()
+			fmt.Println("To manage your subdomains:")
+			fmt.Println("  • Web UI: https://lrok.lum.tools/subdomains")
+			fmt.Println("  • CLI: lrok subdomains list")
+			fmt.Println("  • Release one: lrok subdomains delete <subdomain>")
+			fmt.Println()
+		}
+		return err
+	}
+	return nil
 }
 
 func main() {

@@ -248,6 +248,30 @@ func runSubdomainsReserve(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid or expired API key")
 	}
 
+	if resp.StatusCode != 200 {
+		// Try to parse error response
+		var result ReserveSubdomainResponse
+		if err := json.Unmarshal(body, &result); err == nil && !result.Success {
+			// Check if it's a limit error
+			if strings.Contains(strings.ToLower(result.Reason), "maximum") || 
+			   strings.Contains(strings.ToLower(result.Reason), "limit") ||
+			   strings.Contains(strings.ToLower(result.Reason), "reached") {
+				fmt.Printf("\n❌ Subdomain limit reached\n")
+				fmt.Printf("   %s\n", result.Reason)
+				fmt.Println()
+				fmt.Println("To manage your subdomains:")
+				fmt.Println("  • List: lrok subdomains list")
+				fmt.Println("  • Delete: lrok subdomains delete <subdomain>")
+				fmt.Println("  • Web UI: https://lrok.lum.tools/subdomains")
+				return fmt.Errorf("maximum subdomains reached")
+			}
+			fmt.Printf("\n❌ Failed to reserve subdomain\n")
+			fmt.Printf("   %s\n", result.Reason)
+			return fmt.Errorf("reservation failed: %s", result.Reason)
+		}
+		return fmt.Errorf("API error (%d): %s", resp.StatusCode, string(body))
+	}
+
 	var result ReserveSubdomainResponse
 	if err := json.Unmarshal(body, &result); err != nil {
 		return fmt.Errorf("failed to parse response: %w", err)
@@ -259,9 +283,22 @@ func runSubdomainsReserve(cmd *cobra.Command, args []string) error {
 		fmt.Printf("\nYou can now use this subdomain in your tunnels:\n")
 		fmt.Printf("  lrok http 8080 --subdomain %s\n", result.Subdomain)
 	} else {
+		// Check if it's a limit error
+		if strings.Contains(strings.ToLower(result.Reason), "maximum") || 
+		   strings.Contains(strings.ToLower(result.Reason), "limit") ||
+		   strings.Contains(strings.ToLower(result.Reason), "reached") {
+			fmt.Printf("\n❌ Subdomain limit reached\n")
+			fmt.Printf("   %s\n", result.Reason)
+			fmt.Println()
+			fmt.Println("To manage your subdomains:")
+			fmt.Println("  • List: lrok subdomains list")
+			fmt.Println("  • Delete: lrok subdomains delete <subdomain>")
+			fmt.Println("  • Web UI: https://lrok.lum.tools/subdomains")
+			return fmt.Errorf("maximum subdomains reached")
+		}
 		fmt.Printf("\n❌ Failed to reserve subdomain\n")
 		fmt.Printf("   %s\n", result.Reason)
-		return fmt.Errorf("reservation failed")
+		return fmt.Errorf("reservation failed: %s", result.Reason)
 	}
 
 	return nil

@@ -9,6 +9,7 @@ import (
 	"github.com/lum-tools/lrok/internal/config"
 	"github.com/lum-tools/lrok/internal/names"
 	"github.com/lum-tools/lrok/internal/tunnel"
+	"github.com/lum-tools/lrok/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -56,6 +57,11 @@ func init() {
 }
 
 func runSTCPTunnel(cmd *cobra.Command, args []string) error {
+	// Check for updates and prompt user before starting tunnel
+	if err := version.PromptForUpdate(versionInfo); err != nil {
+		return err
+	}
+
 	// Get port from args
 	localPort, err := strconv.Atoi(args[0])
 	if err != nil {
@@ -120,13 +126,18 @@ Or pass it directly:
 		fmt.Println("   Make sure you're using a valid platform API key from https://platform.lum.tools/keys")
 	}
 
-	// Determine tunnel name
+	// Determine tunnel name and track if explicitly specified
 	tunnelName := name
+	explicitSubdomain := false
 	if subdomain != "" {
 		tunnelName = subdomain
+		explicitSubdomain = true
+	} else if name != "" {
+		explicitSubdomain = true
 	}
 	if tunnelName == "" {
 		tunnelName = names.Generate()
+		// explicitSubdomain remains false for randomly generated names
 	}
 
 	// Validate tunnel name
@@ -136,15 +147,16 @@ Or pass it directly:
 
 	// Generate config
 	cfg := &config.TunnelConfig{
-		APIKey:         apiKey,
-		LocalPort:      localPort,
-		LocalIP:        localIP,
-		Subdomain:      tunnelName,
-		ProxyType:      "stcp",
-		SecretKey:      stcpSecretKey,
-		BandwidthLimit: stcpBandwidthLimit,
-		UseEncryption:  stcpEncrypt,
-		UseCompression: stcpCompress,
+		APIKey:            apiKey,
+		LocalPort:         localPort,
+		LocalIP:           localIP,
+		Subdomain:         tunnelName,
+		ExplicitSubdomain: explicitSubdomain,
+		ProxyType:         "stcp",
+		SecretKey:         stcpSecretKey,
+		BandwidthLimit:    stcpBandwidthLimit,
+		UseEncryption:     stcpEncrypt,
+		UseCompression:    stcpCompress,
 	}
 
 	configPath, err := config.GenerateTOML(cfg)
@@ -179,6 +191,19 @@ Or pass it directly:
 	mgr := tunnel.New(configPath)
 	defer mgr.Cleanup()
 
-	return mgr.StartWithGracefulShutdown()
+	if err := mgr.StartWithGracefulShutdown(); err != nil {
+		if err == tunnel.ErrSubdomainLimit {
+			fmt.Println()
+			fmt.Println("❌ Subdomain limit reached: You have reached the maximum of 5 reserved subdomains")
+			fmt.Println()
+			fmt.Println("To manage your subdomains:")
+			fmt.Println("  • Web UI: https://lrok.lum.tools/subdomains")
+			fmt.Println("  • CLI: lrok subdomains list")
+			fmt.Println("  • Release one: lrok subdomains delete <subdomain>")
+			fmt.Println()
+		}
+		return err
+	}
+	return nil
 }
 

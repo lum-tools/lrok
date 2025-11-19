@@ -1,6 +1,7 @@
 package version
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -199,5 +200,59 @@ func ShowUpdateWarning(currentVersion, latestVersion string, method InstallMetho
 	fmt.Printf("│ Run: %-54s │\n", updateCmd)
 	fmt.Println("╰─────────────────────────────────────────────────────────────╯")
 	fmt.Println()
+}
+
+// PromptForUpdate checks for updates synchronously and prompts the user if an update is available
+// Returns an error if the user declines the update, nil if they accept or no update is available
+func PromptForUpdate(currentVersion string) error {
+	hasUpdate, latestVersion, method, err := CheckForUpdate(currentVersion)
+	if err != nil {
+		// Silent fail on error - continue with tunnel creation
+		return nil
+	}
+
+	if !hasUpdate {
+		// No update available, continue normally
+		return nil
+	}
+
+	// Update available - prompt user
+	fmt.Println()
+	fmt.Println("╭─────────────────────────────────────────────────────────────╮")
+	fmt.Printf("│ ⚠️  New update available: %s → %s%-20s│\n", currentVersion, latestVersion, "")
+	fmt.Println("╰─────────────────────────────────────────────────────────────╯")
+	fmt.Println()
+
+	updateCmd := GetUpdateCommand(method)
+	fmt.Printf("New update - proceed to doing it? (y/n): ")
+
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		// If we can't read input (e.g., non-interactive terminal), continue anyway
+		return nil
+	}
+
+	response = strings.TrimSpace(strings.ToLower(response))
+	if response == "n" || response == "no" {
+		fmt.Println()
+		fmt.Println("Update skipped. Continuing with tunnel creation...")
+		fmt.Println()
+		return nil
+	}
+
+	if response == "y" || response == "yes" {
+		fmt.Println()
+		fmt.Printf("To update, run: %s\n", updateCmd)
+		fmt.Println("Continuing with tunnel creation...")
+		fmt.Println()
+		return nil
+	}
+
+	// Invalid response - default to continuing
+	fmt.Println()
+	fmt.Println("Invalid response. Continuing with tunnel creation...")
+	fmt.Println()
+	return nil
 }
 
