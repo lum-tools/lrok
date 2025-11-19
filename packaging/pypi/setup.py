@@ -10,7 +10,7 @@ from pathlib import Path
 from setuptools import setup
 from setuptools.command.install import install
 
-VERSION = "0.1.4"
+VERSION = "0.3.0"
 
 PLATFORM_MAP = {
     "Darwin": "darwin",
