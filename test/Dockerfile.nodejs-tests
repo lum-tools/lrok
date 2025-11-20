@@ -1,0 +1,24 @@
+FROM node:18-slim
+
+WORKDIR /tests
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Node.js SDK and tests
+COPY sdk/nodejs /sdk
+COPY test/nodejs /tests
+
+# Install SDK dependencies
+WORKDIR /sdk
+RUN npm install
+
+# Install test dependencies
+WORKDIR /tests
+COPY test/package-test.json /tests/package.json
+RUN npm install
+
+# Run tests by default
+CMD ["npm", "test"]

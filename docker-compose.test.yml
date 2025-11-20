@@ -1,0 +1,174 @@
+version: '3.8'
+
+services:
+  # Mock FRP Server for testing
+  frp-server:
+    image: snowdreamtech/frps:latest
+    container_name: test-frp-server
+    ports:
+      - "7000:7000"
+      - "7500:7500"  # Dashboard
+      - "8080-8090:8080-8090"  # Tunnel ports
+    volumes:
+      - ./test/frps.ini:/etc/frp/frps.ini:ro
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "7000"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # lrok Daemon API Server
+  lrok-daemon:
+    build:
+      context: .
+      dockerfile: test/Dockerfile.daemon
+    container_name: lrok-daemon
+    ports:
+      - "4243:4243"  # API
+      - "4242:4242"  # Dashboard
+    environment:
+      - LROK_DAEMON_PORT=4243
+      - LROK_FRP_SERVER=frp-server:7000
+      - LUM_API_KEY=${LUM_API_KEY:-lum_test_key}
+    depends_on:
+      frp-server:
+        condition: service_healthy
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4243/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - ./test/results:/results
+
+  # Test HTTP Application (Python)
+  test-app-python:
+    image: python:3.11-slim
+    container_name: test-app-python
+    working_dir: /app
+    command: >
+      sh -c "echo 'Test HTTP Server' > index.html && python -m http.server 8000"
+    ports:
+      - "8000:8000"
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Test HTTP Application (Node.js)
+  test-app-nodejs:
+    image: node:18-slim
+    container_name: test-app-nodejs
+    working_dir: /app
+    command: >
+      sh -c "npm install -g http-server && http-server -p 8001"
+    ports:
+      - "8001:8001"
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Test TCP Application (PostgreSQL)
+  test-app-postgres:
+    image: postgres:15-alpine
+    container_name: test-app-postgres
+    environment:
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: testdb
+      POSTGRES_USER: testuser
+    ports:
+      - "5432:5432"
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Python SDK Tests
+  sdk-test-python:
+    build:
+      context: .
+      dockerfile: test/Dockerfile.python-tests
+    container_name: sdk-test-python
+    environment:
+      - LROK_API_URL=http://lrok-daemon:4243
+      - TEST_APP_URL=http://test-app-python:8000
+      - LUM_API_KEY=${LUM_API_KEY:-lum_test_key}
+    depends_on:
+      lrok-daemon:
+        condition: service_healthy
+      test-app-python:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      - ./test/results:/results
+      - ./sdk/python:/sdk
+    command: pytest /tests -v --tb=short --cov=/sdk --cov-report=xml:/results/coverage-python.xml --cov-report=html:/results/coverage-python --junitxml=/results/junit-python.xml
+
+  # Node.js SDK Tests
+  sdk-test-nodejs:
+    build:
+      context: .
+      dockerfile: test/Dockerfile.nodejs-tests
+    container_name: sdk-test-nodejs
+    environment:
+      - LROK_API_URL=http://lrok-daemon:4243
+      - TEST_APP_URL=http://test-app-nodejs:8001
+      - LUM_API_KEY=${LUM_API_KEY:-lum_test_key}
+    depends_on:
+      lrok-daemon:
+        condition: service_healthy
+      test-app-nodejs:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      - ./test/results:/results
+      - ./sdk/nodejs:/sdk
+    command: npm test
+
+  # OpenAPI Contract Tests
+  contract-tests:
+    image: stoplight/prism:4
+    container_name: contract-tests
+    depends_on:
+      lrok-daemon:
+        condition: service_healthy
+    networks:
+      - test-network
+    volumes:
+      - ./api:/api:ro
+    command: test /api/openapi.yaml http://lrok-daemon:4243 --errors
+
+  # Coverage Aggregator
+  coverage-aggregator:
+    image: python:3.11-slim
+    container_name: coverage-aggregator
+    working_dir: /app
+    volumes:
+      - ./test/results:/results
+      - ./test/scripts:/app:ro
+    depends_on:
+      - sdk-test-python
+      - sdk-test-nodejs
+    command: python /app/aggregate_coverage.py /results
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge

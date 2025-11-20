@@ -1,0 +1,30 @@
+# Build stage
+FROM golang:1.22-alpine AS builder
+
+WORKDIR /build
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the daemon
+RUN CGO_ENABLED=0 GOOS=linux go build -o lrok ./cmd/lrok
+
+# Runtime stage
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates curl
+
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /build/lrok /usr/local/bin/lrok
+
+# Expose API and dashboard ports
+EXPOSE 4243 4242
+
+# Run daemon
+CMD ["lrok", "daemon", "--port", "4243"]

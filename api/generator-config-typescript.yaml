@@ -1,0 +1,9 @@
+generatorName: typescript-axios
+outputDir: ./sdk/nodejs
+inputSpec: ./api/openapi.yaml
+additionalProperties:
+  npmName: lrok
+  npmVersion: 1.0.0
+  supportsES6: true
+  withInterfaces: true
+  useSingleRequestParameter: true

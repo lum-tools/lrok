@@ -1,0 +1,698 @@
+openapi: 3.0.3
+info:
+  title: lrok API
+  description: |
+    HTTP API for managing lrok tunnels programmatically.
+
+    lrok is a tunneling service that exposes local services to the internet with HTTPS and readable URLs.
+    This API allows you to create, manage, and monitor tunnels programmatically from any language.
+  version: 1.0.0
+  contact:
+    name: lrok Support
+    url: https://github.com/lum-tools/lrok
+  license:
+    name: MIT
+    url: https://github.com/lum-tools/lrok/blob/main/LICENSE
+
+servers:
+  - url: http://localhost:4243
+    description: Local lrok daemon
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /api/v1/health:
+    get:
+      summary: Health check
+      description: Check if the daemon is running and healthy
+      operationId: health
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: Daemon is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  version:
+                    type: string
+                    example: 0.3.2
+                  uptime:
+                    type: integer
+                    description: Uptime in seconds
+
+  /api/v1/version:
+    get:
+      summary: Get version information
+      operationId: getVersion
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: Version information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: 0.3.2
+                  commit:
+                    type: string
+                    example: abc123
+                  buildDate:
+                    type: string
+                    format: date-time
+
+  /api/v1/tunnels:
+    post:
+      summary: Create a new tunnel
+      description: Create and start a new tunnel. The tunnel will begin accepting connections immediately.
+      operationId: createTunnel
+      tags: [Tunnels]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTunnelRequest'
+            examples:
+              http:
+                summary: HTTP tunnel
+                value:
+                  type: http
+                  localPort: 8000
+                  subdomain: my-app
+              tcp:
+                summary: TCP tunnel
+                value:
+                  type: tcp
+                  localPort: 5432
+                  remotePort: 10001
+                  encryption: true
+              stcp:
+                summary: STCP tunnel
+                value:
+                  type: stcp
+                  localPort: 5432
+                  secretKey: my-secret-key-12345
+                  name: secure-db
+      responses:
+        '201':
+          description: Tunnel created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tunnel'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Conflict - subdomain already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List all active tunnels
+      description: Get a list of all currently active tunnels managed by this daemon
+      operationId: listTunnels
+      tags: [Tunnels]
+      responses:
+        '200':
+          description: List of active tunnels
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tunnels:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tunnel'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/tunnels/{id}:
+    get:
+      summary: Get tunnel details
+      description: Get detailed information about a specific tunnel
+      operationId: getTunnel
+      tags: [Tunnels]
+      parameters:
+        - $ref: '#/components/parameters/TunnelId'
+      responses:
+        '200':
+          description: Tunnel details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tunnel'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      summary: Stop and delete tunnel
+      description: Stop a running tunnel and clean up resources
+      operationId: deleteTunnel
+      tags: [Tunnels]
+      parameters:
+        - $ref: '#/components/parameters/TunnelId'
+      responses:
+        '204':
+          description: Tunnel deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/tunnels/{id}/stats:
+    get:
+      summary: Get tunnel statistics
+      description: Get real-time statistics for a tunnel including bytes transferred and connection count
+      operationId: getTunnelStats
+      tags: [Tunnels]
+      parameters:
+        - $ref: '#/components/parameters/TunnelId'
+      responses:
+        '200':
+          description: Tunnel statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TunnelStats'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/tunnels/{id}/requests:
+    get:
+      summary: Get captured HTTP requests
+      description: Get history of captured HTTP requests (HTTP tunnels only)
+      operationId: getTunnelRequests
+      tags: [Tunnels]
+      parameters:
+        - $ref: '#/components/parameters/TunnelId'
+        - name: limit
+          in: query
+          description: Maximum number of requests to return
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+      responses:
+        '200':
+          description: List of captured requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requests:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CapturedRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/tunnels/{id}/requests/stream:
+    get:
+      summary: Stream HTTP requests (SSE)
+      description: Server-Sent Events stream of HTTP requests in real-time (HTTP tunnels only)
+      operationId: streamTunnelRequests
+      tags: [Tunnels]
+      parameters:
+        - $ref: '#/components/parameters/TunnelId'
+      responses:
+        '200':
+          description: SSE stream of requests
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/login:
+    post:
+      summary: Set API key
+      description: Configure the API key for authentication with lrok platform
+      operationId: login
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - apiKey
+              properties:
+                apiKey:
+                  type: string
+                  pattern: '^lum_'
+                  example: lum_abc123xyz
+      responses:
+        '200':
+          description: API key saved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: API key saved successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/auth/logout:
+    post:
+      summary: Remove API key
+      description: Remove the saved API key from configuration
+      operationId: logout
+      tags: [Authentication]
+      responses:
+        '200':
+          description: API key removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: API key removed successfully
+
+  /api/v1/auth/whoami:
+    get:
+      summary: Get current authentication status
+      description: Check current API key and authentication status
+      operationId: whoami
+      tags: [Authentication]
+      responses:
+        '200':
+          description: Authentication status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authenticated:
+                    type: boolean
+                  apiKey:
+                    type: string
+                    description: Masked API key (last 4 characters only)
+                    example: lum_****xyz
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/subdomains:
+    get:
+      summary: List reserved subdomains
+      description: Get list of subdomains reserved for your account
+      operationId: listSubdomains
+      tags: [Subdomains]
+      responses:
+        '200':
+          description: List of reserved subdomains
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subdomains:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Subdomain'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Reserve a subdomain
+      description: Reserve a subdomain for exclusive use
+      operationId: reserveSubdomain
+      tags: [Subdomains]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  pattern: '^[a-z0-9-]{3,63}$'
+                  example: my-app
+      responses:
+        '201':
+          description: Subdomain reserved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subdomain'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Subdomain already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/subdomains/{name}:
+    delete:
+      summary: Delete a reserved subdomain
+      description: Release a previously reserved subdomain
+      operationId: deleteSubdomain
+      tags: [Subdomains]
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Subdomain name
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Subdomain deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: 'API key with Bearer prefix: "Bearer lum_xxxxx"'
+
+  parameters:
+    TunnelId:
+      name: id
+      in: path
+      required: true
+      description: Unique tunnel identifier
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    CreateTunnelRequest:
+      type: object
+      required:
+        - type
+        - localPort
+      properties:
+        type:
+          type: string
+          enum: [http, tcp, stcp, xtcp, visitor]
+          description: Type of tunnel to create
+        localPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: Local port to tunnel
+        subdomain:
+          type: string
+          pattern: '^[a-z0-9-]{3,63}$'
+          description: Custom subdomain (HTTP only)
+          example: my-app
+        name:
+          type: string
+          pattern: '^[a-z0-9-]{3,63}$'
+          description: Tunnel name (optional, auto-generated if not provided)
+        remotePort:
+          type: integer
+          minimum: 1024
+          maximum: 65535
+          description: Remote port (required for TCP)
+        secretKey:
+          type: string
+          minLength: 8
+          maxLength: 64
+          description: Secret key for STCP/XTCP
+        serverName:
+          type: string
+          description: Server name to connect to (visitor mode)
+        bindPort:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          description: Local bind port (visitor mode)
+        encryption:
+          type: boolean
+          default: false
+          description: Enable encryption
+        compression:
+          type: boolean
+          default: false
+          description: Enable compression
+        bandwidthLimit:
+          type: string
+          pattern: '^\d+(KB|MB)$'
+          example: "1MB"
+          description: Bandwidth limit (e.g., "1MB", "500KB")
+        healthCheck:
+          $ref: '#/components/schemas/HealthCheckConfig'
+
+    HealthCheckConfig:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [tcp, http]
+          default: tcp
+        timeoutSeconds:
+          type: integer
+          minimum: 1
+          maximum: 60
+          default: 3
+        maxFailed:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 3
+        intervalSeconds:
+          type: integer
+          minimum: 1
+          maximum: 3600
+          default: 10
+        path:
+          type: string
+          description: HTTP path for health check (HTTP type only)
+          example: /health
+
+    Tunnel:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique tunnel identifier
+          example: 123e4567-e89b-12d3-a456-426614174000
+        type:
+          type: string
+          enum: [http, tcp, stcp, xtcp, visitor]
+          description: Type of tunnel
+        name:
+          type: string
+          description: Tunnel name
+          example: happy-dolphin
+        localPort:
+          type: integer
+          description: Local port being tunneled
+          example: 8000
+        publicUrl:
+          type: string
+          description: Public URL to access the tunnel
+          example: https://happy-dolphin.lum.tools
+        remotePort:
+          type: integer
+          description: Remote port (TCP tunnels only)
+        status:
+          type: string
+          enum: [starting, connected, disconnected, error]
+          description: Current tunnel status
+        createdAt:
+          type: string
+          format: date-time
+          description: When the tunnel was created
+        config:
+          type: object
+          description: Full tunnel configuration
+          additionalProperties: true
+
+    TunnelStats:
+      type: object
+      properties:
+        bytesIn:
+          type: integer
+          format: int64
+          description: Total bytes received
+          example: 1048576
+        bytesOut:
+          type: integer
+          format: int64
+          description: Total bytes sent
+          example: 2097152
+        connections:
+          type: integer
+          format: int64
+          description: Total number of connections
+          example: 42
+        requestCount:
+          type: integer
+          format: int64
+          description: Total HTTP requests (HTTP tunnels only)
+          example: 100
+        uptime:
+          type: integer
+          description: Uptime in seconds
+          example: 3600
+
+    CapturedRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique request identifier
+        timestamp:
+          type: string
+          format: date-time
+          description: When the request was received
+        method:
+          type: string
+          description: HTTP method
+          example: GET
+        path:
+          type: string
+          description: Request path
+          example: /api/users
+        statusCode:
+          type: integer
+          description: HTTP status code
+          example: 200
+        duration:
+          type: integer
+          description: Request duration in milliseconds
+          example: 45
+        bytesIn:
+          type: integer
+          format: int64
+          description: Request body size
+        bytesOut:
+          type: integer
+          format: int64
+          description: Response body size
+        requestHeaders:
+          type: object
+          additionalProperties:
+            type: string
+          description: Request headers
+        responseHeaders:
+          type: object
+          additionalProperties:
+            type: string
+          description: Response headers
+        requestBody:
+          type: string
+          description: Request body (truncated if large)
+        responseBody:
+          type: string
+          description: Response body (truncated if large)
+
+    Subdomain:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Subdomain name
+          example: my-app
+        createdAt:
+          type: string
+          format: date-time
+          description: When the subdomain was reserved
+        lastUsed:
+          type: string
+          format: date-time
+          description: When the subdomain was last used
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: Invalid port number
+        code:
+          type: string
+          description: Error code
+          example: INVALID_PORT
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error details
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized - API key required or invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "API key required"
+            code: "UNAUTHORIZED"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Tunnel not found"
+            code: "NOT_FOUND"
+
+tags:
+  - name: System
+    description: System health and version information
+  - name: Tunnels
+    description: Create and manage tunnels
+  - name: Authentication
+    description: API key management
+  - name: Subdomains
+    description: Subdomain reservation and management

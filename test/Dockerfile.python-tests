@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+
+WORKDIR /tests
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy test requirements
+COPY test/requirements-test.txt /tests/
+
+# Install Python test dependencies
+RUN pip install --no-cache-dir -r requirements-test.txt
+
+# Copy Python SDK and tests
+COPY sdk/python /sdk
+COPY test/python /tests
+
+# Install SDK in development mode
+RUN cd /sdk && pip install -e .
+
+# Run tests by default
+CMD ["pytest", "-v", "--tb=short", "--cov=/sdk"]
