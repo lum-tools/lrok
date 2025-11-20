@@ -146,22 +146,22 @@ jobs:
       - name: Start test infrastructure
         run: |
           echo "Starting test infrastructure..."
-          docker-compose -f docker-compose.test.yml up -d frp-server lrok-daemon test-app-python || true
+          docker compose -f docker compose.test.yml up -d frp-server lrok-daemon test-app-python || true
           echo "Waiting for services to be ready..."
           sleep 10
           echo ""
           echo "Checking service status:"
-          docker-compose -f docker-compose.test.yml ps
+          docker compose -f docker compose.test.yml ps
           echo ""
           echo "Checking daemon logs:"
-          docker-compose -f docker-compose.test.yml logs lrok-daemon || true
+          docker compose -f docker compose.test.yml logs lrok-daemon || true
           echo ""
           echo "Testing API health endpoint:"
-          docker-compose -f docker-compose.test.yml exec -T lrok-daemon curl -f http://localhost:4243/api/v1/health || echo "⚠️  Health check failed, but continuing..."
+          docker compose -f docker compose.test.yml exec -T lrok-daemon curl -f http://localhost:4243/api/v1/health || echo "⚠️  Health check failed, but continuing..."
 
       - name: Run Python SDK tests
         run: |
-          docker-compose -f docker-compose.test.yml run --rm sdk-test-python || echo "⚠️  Tests had failures, check logs"
+          docker compose -f docker compose.test.yml run --rm sdk-test-python || echo "⚠️  Tests had failures, check logs"
         continue-on-error: true
 
       - name: Show test results
@@ -171,7 +171,7 @@ jobs:
           ls -la test/results/ || echo "No results directory found"
           echo ""
           echo "Docker logs:"
-          docker-compose -f docker-compose.test.yml logs --tail=50 || true
+          docker compose -f docker compose.test.yml logs --tail=50 || true
 
       - name: Upload Python coverage
         uses: codecov/codecov-action@v4
@@ -191,7 +191,7 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: docker-compose -f docker-compose.test.yml down -v
+        run: docker compose -f docker compose.test.yml down -v
 
   # Node.js SDK tests
   test-nodejs-sdk:
@@ -219,17 +219,17 @@ jobs:
 
       - name: Start test infrastructure
         run: |
-          docker-compose -f docker-compose.test.yml up -d frp-server lrok-daemon test-app-nodejs
+          docker compose -f docker compose.test.yml up -d frp-server lrok-daemon test-app-nodejs
           echo "Waiting for services to be healthy..."
-          timeout 90 bash -c 'until docker-compose -f docker-compose.test.yml ps | grep -q "healthy"; do sleep 2; echo -n "."; done' || (docker-compose -f docker-compose.test.yml logs && exit 1)
+          timeout 90 bash -c 'until docker compose -f docker compose.test.yml ps | grep -q "healthy"; do sleep 2; echo -n "."; done' || (docker compose -f docker compose.test.yml logs && exit 1)
 
       - name: Run Node.js SDK tests
         run: |
-          docker-compose -f docker-compose.test.yml run --rm sdk-test-nodejs || echo "Node.js tests not yet fully implemented"
+          docker compose -f docker compose.test.yml run --rm sdk-test-nodejs || echo "Node.js tests not yet fully implemented"
 
       - name: Cleanup
         if: always()
-        run: docker-compose -f docker-compose.test.yml down -v
+        run: docker compose -f docker compose.test.yml down -v
 
   # OpenAPI contract tests
   contract-tests:
@@ -251,16 +251,16 @@ jobs:
 
       - name: Start lrok daemon
         run: |
-          docker-compose -f docker-compose.test.yml up -d frp-server lrok-daemon
-          timeout 60 bash -c 'until docker-compose -f docker-compose.test.yml ps lrok-daemon | grep -q "healthy"; do sleep 2; done'
+          docker compose -f docker compose.test.yml up -d frp-server lrok-daemon
+          timeout 60 bash -c 'until docker compose -f docker compose.test.yml ps lrok-daemon | grep -q "healthy"; do sleep 2; done'
 
       - name: Run contract tests
         run: |
-          docker-compose -f docker-compose.test.yml run --rm contract-tests || echo "Some contract tests had warnings"
+          docker compose -f docker compose.test.yml run --rm contract-tests || echo "Some contract tests had warnings"
 
       - name: Cleanup
         if: always()
-        run: docker-compose -f docker-compose.test.yml down -v
+        run: docker compose -f docker compose.test.yml down -v
 
   # Coverage aggregation
   aggregate-coverage:
@@ -347,7 +347,7 @@ jobs:
 
       - name: Start lrok daemon
         run: |
-          docker-compose -f docker-compose.test.yml up -d frp-server lrok-daemon
+          docker compose -f docker compose.test.yml up -d frp-server lrok-daemon
           timeout 60 bash -c 'until curl -f http://localhost:4243/api/v1/health; do sleep 2; done'
 
       - name: Run load tests with k6
@@ -358,7 +358,7 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: docker-compose -f docker-compose.test.yml down -v
+        run: docker compose -f docker compose.test.yml down -v
 
   # Summary job
   test-summary:

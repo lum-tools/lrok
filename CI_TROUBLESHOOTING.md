@@ -2,6 +2,14 @@
 
 This document helps debug common CI failures in the SDK E2E tests.
 
+## ⚠️ Important Note on Docker Compose
+
+GitHub Actions Ubuntu 24.04 runners use **Docker Compose v2** (integrated into Docker CLI):
+- ✅ Use: `docker compose` (with space)
+- ❌ Don't use: `docker-compose` (with hyphen) - this will fail
+
+All commands in this guide use the v2 syntax.
+
 ## Common CI Failures
 
 ### 1. Build Daemon Job Fails
@@ -51,7 +59,7 @@ openapi-generator-cli generate -i api/openapi.yaml -g python -o /tmp/sdk-test
 - Port conflicts
 
 **Fixes Applied**:
-- Added detailed logging: `docker-compose logs`
+- Added detailed logging: `docker compose logs`
 - Changed healthcheck strategy to simple sleep
 - Added status checks before tests run
 - Made tests continue even if health checks fail
@@ -59,14 +67,14 @@ openapi-generator-cli generate -i api/openapi.yaml -g python -o /tmp/sdk-test
 **Debug**:
 ```bash
 # Check service status
-docker-compose -f docker-compose.test.yml ps
+docker compose -f docker compose.test.yml ps
 
 # View logs
-docker-compose -f docker-compose.test.yml logs lrok-daemon
-docker-compose -f docker-compose.test.yml logs frp-server
+docker compose -f docker compose.test.yml logs lrok-daemon
+docker compose -f docker compose.test.yml logs frp-server
 
 # Test health endpoint
-docker-compose -f docker-compose.test.yml exec lrok-daemon curl http://localhost:4243/api/v1/health
+docker compose -f docker compose.test.yml exec lrok-daemon curl http://localhost:4243/api/v1/health
 ```
 
 ### 4. Python Tests Fail
@@ -88,14 +96,14 @@ docker-compose -f docker-compose.test.yml exec lrok-daemon curl http://localhost
 **Debug**:
 ```bash
 # Run tests locally
-docker-compose -f docker-compose.test.yml up -d lrok-daemon test-app-python
-docker-compose -f docker-compose.test.yml run --rm sdk-test-python
+docker compose -f docker compose.test.yml up -d lrok-daemon test-app-python
+docker compose -f docker compose.test.yml run --rm sdk-test-python
 
 # Check test results
 ls -la test/results/
 
 # View detailed logs
-docker-compose -f docker-compose.test.yml logs sdk-test-python
+docker compose -f docker compose.test.yml logs sdk-test-python
 ```
 
 ### 5. Coverage Upload Fails
@@ -147,9 +155,9 @@ ls -la sdk/nodejs/
 ./scripts/test-sdks.sh
 
 # Just infrastructure
-docker-compose -f docker-compose.test.yml up -d
-docker-compose -f docker-compose.test.yml ps
-docker-compose -f docker-compose.test.yml logs
+docker compose -f docker compose.test.yml up -d
+docker compose -f docker compose.test.yml ps
+docker compose -f docker compose.test.yml logs
 ```
 
 ### Manual API Testing
@@ -209,7 +217,7 @@ When CI fails:
 
 ### Docker on macOS
 - Volume mounts may have permission issues
-- Use `docker-compose` v2+ for better compatibility
+- Use `docker compose` v2+ for better compatibility
 
 ### Generated SDK Structure
 - SDKs may not install properly without `setup.py`
