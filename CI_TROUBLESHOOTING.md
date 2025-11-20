@@ -67,14 +67,14 @@ openapi-generator-cli generate -i api/openapi.yaml -g python -o /tmp/sdk-test
 **Debug**:
 ```bash
 # Check service status
-docker compose -f docker compose.test.yml ps
+docker compose -f docker-compose.test.yml ps
 
 # View logs
-docker compose -f docker compose.test.yml logs lrok-daemon
-docker compose -f docker compose.test.yml logs frp-server
+docker compose -f docker-compose.test.yml logs lrok-daemon
+docker compose -f docker-compose.test.yml logs frp-server
 
 # Test health endpoint
-docker compose -f docker compose.test.yml exec lrok-daemon curl http://localhost:4243/api/v1/health
+docker compose -f docker-compose.test.yml exec lrok-daemon curl http://localhost:4243/api/v1/health
 ```
 
 ### 4. Python Tests Fail
@@ -96,14 +96,14 @@ docker compose -f docker compose.test.yml exec lrok-daemon curl http://localhost
 **Debug**:
 ```bash
 # Run tests locally
-docker compose -f docker compose.test.yml up -d lrok-daemon test-app-python
-docker compose -f docker compose.test.yml run --rm sdk-test-python
+docker compose -f docker-compose.test.yml up -d lrok-daemon test-app-python
+docker compose -f docker-compose.test.yml run --rm sdk-test-python
 
 # Check test results
 ls -la test/results/
 
 # View detailed logs
-docker compose -f docker compose.test.yml logs sdk-test-python
+docker compose -f docker-compose.test.yml logs sdk-test-python
 ```
 
 ### 5. Coverage Upload Fails
@@ -155,9 +155,9 @@ ls -la sdk/nodejs/
 ./scripts/test-sdks.sh
 
 # Just infrastructure
-docker compose -f docker compose.test.yml up -d
-docker compose -f docker compose.test.yml ps
-docker compose -f docker compose.test.yml logs
+docker compose -f docker-compose.test.yml up -d
+docker compose -f docker-compose.test.yml ps
+docker compose -f docker-compose.test.yml logs
 ```
 
 ### Manual API Testing
