@@ -7,6 +7,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 env:
   GO_VERSION: '1.22.2'
   NODE_VERSION: '18'
@@ -300,6 +305,7 @@ jobs:
       - name: Comment PR with coverage
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
+        continue-on-error: true
         with:
           script: |
             const fs = require('fs');
@@ -316,14 +322,16 @@ jobs:
               ).join('\n')}
               `;
 
-              github.rest.issues.createComment({
+              await github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 body: body
               });
+              console.log('✅ Coverage comment posted successfully');
             } catch (error) {
-              console.log('Could not post coverage comment:', error);
+              console.log('⚠️  Could not post coverage comment:', error.message);
+              core.warning('Failed to post PR comment: ' + error.message);
             }
 
   # Performance tests (optional, runs on main branch only)
