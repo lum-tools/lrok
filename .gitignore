@@ -31,3 +31,17 @@ Thumbs.db
 
 # Environment
 .env
+
+# Generated SDK directories (generated during CI)
+sdk/
+
+# Test results
+test/results/
+
+# OpenAPI Generator config
+openapitools.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo

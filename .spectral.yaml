@@ -1,0 +1,24 @@
+extends: [[spectral:oas, all]]
+
+rules:
+  # Ensure all operations have operation IDs
+  operation-operationId: error
+
+  # Ensure all operations have descriptions
+  operation-description: warn
+
+  # Ensure all operations have tags
+  operation-tags: warn
+
+  # Ensure all parameters have descriptions
+  oas3-parameter-description: warn
+
+  # Ensure all schemas have examples
+  oas3-schema-example: off  # Too strict for now
+
+  # Ensure consistent naming
+  operation-operationId-valid-in-url: error
+
+  # Security
+  oas3-api-servers: error
+  oas3-server-trailing-slash: error

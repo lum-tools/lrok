@@ -1,0 +1,10 @@
+generatorName: python
+outputDir: ./sdk/python
+inputSpec: ./api/openapi.yaml
+additionalProperties:
+  packageName: lrok
+  projectName: lrok-python
+  packageVersion: 1.0.0
+  packageUrl: https://github.com/lum-tools/lrok
+  library: urllib3
+  generateSourceCodeOnly: false

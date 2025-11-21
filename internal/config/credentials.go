@@ -120,6 +120,11 @@ func GetAPIKey() (string, error) {
 	return config.Auth.APIKey, nil
 }
 
+// RemoveAPIKey removes the API key from config
+func RemoveAPIKey() error {
+	return SaveAPIKey("")
+}
+
 // ClearConfig removes the config file
 func ClearConfig() error {
 	configFile, err := GetConfigPath()
