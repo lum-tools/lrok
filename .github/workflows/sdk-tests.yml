@@ -65,31 +65,42 @@ jobs:
       - name: Generate SDKs
         run: |
           chmod +x ./scripts/generate-sdks.sh
-          ./scripts/generate-sdks.sh || echo "SDK generation had warnings, continuing..."
+          ./scripts/generate-sdks.sh
+
+          # Verify SDKs were generated
+          echo "Verifying SDK generation..."
+          test -d sdk/python && echo "✓ Python SDK generated" || (echo "✗ Python SDK missing" && exit 1)
+          test -d sdk/nodejs && echo "✓ Node.js SDK generated" || (echo "✗ Node.js SDK missing" && exit 1)
+          test -d sdk/ruby && echo "✓ Ruby SDK generated" || (echo "✗ Ruby SDK missing" && exit 1)
+          test -d sdk/go && echo "✓ Go SDK generated" || (echo "✗ Go SDK missing" && exit 1)
 
       - name: Upload Python SDK
         uses: actions/upload-artifact@v4
         with:
           name: sdk-python
           path: sdk/python/
+          if-no-files-found: error
 
       - name: Upload Node.js SDK
         uses: actions/upload-artifact@v4
         with:
           name: sdk-nodejs
           path: sdk/nodejs/
+          if-no-files-found: error
 
       - name: Upload Ruby SDK
         uses: actions/upload-artifact@v4
         with:
           name: sdk-ruby
           path: sdk/ruby/
+          if-no-files-found: error
 
       - name: Upload Go SDK
         uses: actions/upload-artifact@v4
         with:
           name: sdk-go
           path: sdk/go/
+          if-no-files-found: error
 
   # Build lrok daemon
   build-daemon:
@@ -135,10 +146,16 @@ jobs:
 
       - name: Download Python SDK
         uses: actions/download-artifact@v4
-        continue-on-error: true
         with:
           name: sdk-python
           path: sdk/python/
+
+      - name: Verify SDK downloaded
+        run: |
+          echo "Checking SDK files..."
+          ls -la sdk/python/ || (echo "✗ Python SDK directory missing" && exit 1)
+          test -f sdk/python/setup.py || (echo "✗ setup.py missing in Python SDK" && exit 1)
+          echo "✓ Python SDK verified"
 
       - name: Set up test environment
         run: |
@@ -165,18 +182,32 @@ jobs:
           docker compose -f docker-compose.test.yml exec -T lrok-daemon curl -f http://localhost:4243/api/v1/health || echo "⚠️  Health check failed, but continuing..."
 
       - name: Run Python SDK tests
+        id: python-tests
         run: |
-          docker compose -f docker-compose.test.yml run --rm sdk-test-python || echo "⚠️  Tests had failures, check logs"
+          echo "Running Python SDK tests..."
+          docker compose -f docker-compose.test.yml run --rm sdk-test-python
         continue-on-error: true
 
       - name: Show test results
         if: always()
         run: |
-          echo "Test results directory:"
-          ls -la test/results/ || echo "No results directory found"
+          echo "=== Test Results ==="
+          if [ -d test/results/ ]; then
+            echo "✓ Results directory exists"
+            ls -la test/results/
+            echo ""
+            echo "Checking for coverage files:"
+            test -f test/results/coverage-python.xml && echo "✓ coverage-python.xml found" || echo "✗ coverage-python.xml MISSING"
+            test -f test/results/junit-python.xml && echo "✓ junit-python.xml found" || echo "✗ junit-python.xml MISSING"
+          else
+            echo "✗ No results directory found"
+          fi
           echo ""
-          echo "Docker logs:"
-          docker compose -f docker-compose.test.yml logs --tail=50 || true
+          echo "=== Docker Container Logs ==="
+          docker compose -f docker-compose.test.yml logs sdk-test-python || true
+          echo ""
+          echo "=== Daemon Logs ==="
+          docker compose -f docker-compose.test.yml logs --tail=30 lrok-daemon || true
 
       - name: Upload Python coverage
         uses: codecov/codecov-action@v4
