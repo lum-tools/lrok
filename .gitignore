@@ -31,3 +31,9 @@ Thumbs.db
 
 # Environment
 .env
+
+# Generated SDK directories (generated during CI)
+sdk/
+
+# Test results
+test/results/
