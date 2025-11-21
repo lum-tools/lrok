@@ -1,14 +1,43 @@
 # lrok - Expose Local Servers to the Internet
 
-**lrok** (short for *lum-rok*) is a fast, secure tunnel service that exposes your localhost to the internet with HTTPS and human-readable URLs — like ngrok, but built on [platform.lum.tools](https://platform.lum.tools) infrastructure.
+**lrok** (short for *lum-rok*) is a fast, secure tunnel service that exposes your localhost to the internet with HTTPS and human-readable URLs — available as both a **CLI tool** and **programmable SDKs**.
 
 ```bash
+# CLI: Quick tunnel in seconds
 lrok 8000
-# → https://happy-dolphin.t.lum.tools (public URL)
-# → http://localhost:4242 (local dashboard)
+# → https://happy-dolphin.t.lum.tools
+# → http://localhost:4242 (dashboard)
+
+# SDK: Programmatic tunnel control
+python -c "
+from lrok import TunnelsApi, CreateTunnelRequest
+tunnel = TunnelsApi().create_tunnel(CreateTunnelRequest(type='http', local_port=8000))
+print(f'Tunnel: {tunnel.public_url}')
+"
 ```
 
-## TL;DR - Quick Start
+---
+
+## 🎯 Why lrok?
+
+**For Developers:**
+- Test webhooks locally (Stripe, GitHub, Twilio, etc.)
+- Share dev environments with teammates
+- Demo work-in-progress to clients
+- Remote access to local services
+
+**For Automation:**
+- Create tunnels programmatically in CI/CD
+- Dynamic tunnel management in your applications
+- Multi-language SDK support (Python, TypeScript, Ruby, Go)
+
+**100% Free**: No credit card. No paid tiers. No usage limits (for now).
+
+---
+
+## 🚀 Quick Start
+
+### CLI Usage
 
 ```bash
 # Install
@@ -17,477 +46,675 @@ curl -fsSL https://platform.lum.tools/install.sh | bash
 # Get API key (free, no credit card)
 # Visit: https://platform.lum.tools/keys
 
-# Set key
-export LUM_API_KEY='lum_your_key'
+# Authenticate
+lrok login lum_your_api_key_here
 
-# Expose port 8000
+# Create tunnel
 lrok 8000
+# → https://happy-dolphin.t.lum.tools
 ```
 
-Done! Your local server is now accessible at a public HTTPS URL. 🎉
+### SDK Usage
+
+**Prerequisites:** Start the lrok daemon first:
+```bash
+lrok daemon --port 4243
+```
+
+**Python SDK:**
+```python
+from lrok import ApiClient, Configuration, TunnelsApi
+from lrok.models import CreateTunnelRequest
+
+# Configure
+config = Configuration(host="http://localhost:4243")
+api = TunnelsApi(ApiClient(config))
+
+# Create tunnel
+tunnel = api.create_tunnel(CreateTunnelRequest(
+    type="http",
+    local_port=8000,
+    subdomain="my-app"
+))
+
+print(f"Tunnel URL: {tunnel.public_url}")
+
+# Stop tunnel
+api.delete_tunnel(tunnel.id)
+```
+
+**TypeScript/Node.js SDK:**
+```typescript
+import { Configuration, TunnelsApi, CreateTunnelRequest } from 'lrok';
+
+const api = new TunnelsApi(new Configuration({
+  basePath: 'http://localhost:4243'
+}));
+
+const { data: tunnel } = await api.createTunnel({
+  type: 'http',
+  localPort: 8000,
+  subdomain: 'my-app'
+});
+
+console.log(`Tunnel URL: ${tunnel.publicUrl}`);
+```
 
 ---
 
-**Perfect for:**
-- Testing webhooks locally (Stripe, GitHub, etc.)
-- Sharing dev environments with teammates
-- Demoing work-in-progress to clients
-- Remote access to local services
-- Mobile app testing
+## ✨ Features
 
-**100% Free**: No credit card required. No paid tiers. No usage limits (for now).
+### CLI Features
+- **🎯 Readable URLs**: `happy-dolphin.t.lum.tools` instead of random hashes
+- **📊 Built-in Dashboard**: Beautiful request inspector at `http://localhost:4242`
+- **🔒 HTTPS by Default**: Automatic SSL certificates
+- **📈 Traffic Tracking**: Monitor usage at [platform.lum.tools/tunnels](https://platform.lum.tools/tunnels)
+- **🌍 Cross-Platform**: Single binary for macOS, Linux, Windows
+- **🔌 Multiple Protocols**: HTTP, TCP, STCP (secure), XTCP (P2P)
 
-## Features
+### SDK Features
+- **🐍 Python SDK**: Full-featured with type hints
+- **📦 TypeScript SDK**: Type-safe with Axios
+- **💎 Ruby SDK**: Idiomatic Ruby interface
+- **🐹 Go SDK**: Native Go implementation
+- **🔄 REST API**: HTTP/JSON API on port 4243
+- **📡 Real-time Stats**: Bytes, connections, uptime
+- **🔍 Request Inspection**: Capture and analyze HTTP requests
 
-- **🎯 Readable URLs**: Get memorable names like `happy-dolphin.t.lum.tools` instead of random hashes
-- **📊 Built-in Request Inspector**: Beautiful web UI at `http://localhost:4242` with:
-  - Real-time request/response viewer
-  - HTTP headers inspection
-  - Request/response body viewer
-  - Status code tracking
-  - Request timing metrics
-- **🔒 HTTPS by Default**: All tunnels automatically secured with valid SSL certificates
-- **📈 Traffic Tracking**: Monitor your tunnel usage at [platform.lum.tools/tunnels](https://platform.lum.tools/tunnels)
-- **⚡ Zero Configuration**: Works out of the box with lum.tools infrastructure
-- **🌍 Cross-Platform**: Single binary for macOS, Linux, and Windows
-- **📦 Self-Contained**: No additional dependencies to install
-- **🔌 Multiple Protocols**: Support for HTTP, TCP, STCP, and XTCP tunnels
-- **🔐 Secure Tunnels**: STCP and XTCP for encrypted, private connections
-- **⚡ P2P Mode**: XTCP for direct client-to-client connections
-- **📊 Advanced Monitoring**: Protocol-specific statistics and Prometheus metrics
+---
 
-## Installation
+## 📦 Installation
 
-### Quick Install (macOS/Linux) - Recommended
+### CLI Installation
 
+**Quick Install (macOS/Linux):**
 ```bash
 curl -fsSL https://platform.lum.tools/install.sh | bash
 ```
 
-This automatically detects your platform and installs lrok to `~/.local/bin`.
-
-### npm (Cross-platform)
-
+**npm (Cross-platform):**
 ```bash
 npm install -g lrok
 ```
 
-### PyPI (Cross-platform)
-
+**PyPI (Cross-platform):**
 ```bash
 pip install lrok
 ```
 
-### Direct Download
+**Direct Download:**
+- [GitHub Releases](https://github.com/lum-tools/lrok/releases)
 
-Download the latest binary from [GitHub Releases](https://github.com/lum-tools/lrok/releases).
+### SDK Installation
 
-## Quick Start
+**Python:**
+```bash
+pip install lrok
+```
+
+**Node.js/TypeScript:**
+```bash
+npm install lrok
+```
+
+**Ruby:**
+```bash
+gem install lrok
+```
+
+**Go:**
+```bash
+go get github.com/lum-tools/lrok-go
+```
+
+---
+
+## 🔐 Authentication
 
 ### 1. Get Your Free API Key
 
 1. Visit [platform.lum.tools](https://platform.lum.tools)
-2. Sign in with Google, GitHub, or email (no credit card required)
+2. Sign in (Google, GitHub, or email)
 3. Navigate to [API Keys](https://platform.lum.tools/keys)
-4. Click "Create New Key" and give it a name
-5. Copy your key (starts with `lum_`)
+4. Create new key (starts with `lum_`)
 
-**Note**: lum.tools is 100% free with no usage limits. We don't ask for credit cards.
+### 2. Configure CLI
 
-### 2. Login with Your API Key
-
-**Recommended:** Save your API key to config file (like `docker login`, `gh auth login`):
-
+**Recommended:** Save to config file:
 ```bash
 lrok login lum_your_api_key_here
 ```
 
-This saves your key to `~/.lrok/config.toml` so you never have to set it again!
-
-**Alternative:** Use environment variable (still supported):
-
+**Alternative:** Use environment variable:
 ```bash
 export LUM_API_KEY='lum_your_api_key_here'
-
-# Make it permanent (optional)
-echo 'export LUM_API_KEY="lum_your_key"' >> ~/.bashrc  # or ~/.zshrc
 ```
 
-**Check your auth status:**
-
+**Check auth status:**
 ```bash
 lrok whoami
-# → ✅ Logged in
-#    API Key: lum_abc123...xyz
-#    Source: config file (~/.lrok/config.toml)
+# → ✅ Logged in as: user@example.com
 ```
 
-### 3. Start Tunneling
+---
+
+## 🎮 CLI Usage
+
+### Basic Commands
 
 ```bash
-# Expose port 8000 with a random name
+# Quick tunnel with random name
 lrok 8000
-# → https://happy-dolphin.t.lum.tools
 
-# Use a custom name
-lrok http 3000 --name my-app
+# Custom subdomain
+lrok 8000 -n my-app
 # → https://my-app.t.lum.tools
 
-# Shorthand is also supported
-lrok 3000 -n my-app
-```
+# TCP tunnel (databases, SSH, etc.)
+lrok tcp 5432 --remote-port 10001
+# → frp.lum.tools:10001
 
-Your terminal will show:
-- 📍 Local address
-- 🌐 Public URL
-- 🏷️ Tunnel name
-- 📊 Dashboard URL (http://localhost:4242)
+# Secure tunnel with pre-shared key
+lrok stcp 22 --secret-key my-secret
 
-## Usage
-
-### Basic Syntax
-
-```bash
-# Shorthand (recommended)
-lrok <port>
-
-# Explicit protocol
-lrok http <port>
-
-# With options
-lrok <port> [flags]
+# P2P tunnel (direct connection)
+lrok xtcp 3000 --secret-key p2p-key
 ```
 
 ### Available Commands
 
 ```
-lrok - Expose local servers to the internet
-
-Usage:
-  lrok [port]                 Quick HTTP tunnel with random name
-  lrok http [port] [flags]    HTTP tunnel with options
-  lrok tcp <port> [flags]     TCP tunnel for direct port forwarding
-  lrok stcp <port> [flags]    Secret TCP tunnel (requires visitor)
-  lrok xtcp <port> [flags]    P2P tunnel for direct client connections
-  lrok visitor <name> [flags] Connect to STCP/XTCP tunnel as visitor
-  lrok subdomains             Manage reserved subdomains
-  lrok version                Show version information
-  lrok help                   Show help
-
-Examples:
-  lrok 8000                   Expose port 8000 with random name
-  lrok 3000 -n my-app         Expose port 3000 as my-app.t.lum.tools
-  lrok tcp 5432 --remote-port 10001    Expose PostgreSQL on port 10001
-  lrok stcp 22 --secret-key my-secret  Secure SSH tunnel
-  lrok xtcp 8080 --secret-key p2p-key  P2P web server tunnel
-  lrok subdomains list        List your reserved subdomains
-  lrok subdomains reserve myapp  Reserve a subdomain
-
-Flags:
-  -n, --name string        Custom tunnel name (generates random if not provided)
-      --subdomain string   Alias for --name
-  -k, --api-key string     API key (or set LUM_API_KEY env var)
-      --ip string          Local IP address (default: 127.0.0.1)
-      --remote-port int     Remote port on server (TCP only)
-      --secret-key string   Pre-shared secret key (STCP/XTCP only)
-      --encrypt            Enable encryption (TCP/STCP only)
-      --compress           Enable compression (TCP/STCP only)
-      --bandwidth string    Bandwidth limit (e.g., 1MB, 500KB)
-      --health-check        Enable health checks (TCP only)
-  -h, --help               Show help
+lrok [port]                  Quick HTTP tunnel
+lrok http [port] [flags]     HTTP tunnel with options
+lrok tcp <port> [flags]      TCP tunnel
+lrok stcp <port> [flags]     Secure TCP tunnel
+lrok xtcp <port> [flags]     P2P tunnel
+lrok visitor <name> [flags]  Connect to secure/P2P tunnel
+lrok daemon [flags]          Start API daemon
+lrok subdomains              Manage reserved subdomains
+lrok login <api-key>         Save API key
+lrok logout                  Remove API key
+lrok whoami                  Check auth status
+lrok version                 Show version
 ```
 
-## Examples
+### Common Flags
 
-### HTTP Tunnels (Web Services)
-
-#### Expose a Development Server
-```bash
-# Start your dev server
-npm run dev  # Running on port 3000
-
-# Create tunnel with custom name
-lrok 3000 -n my-project
-
-# Share: https://my-project.t.lum.tools
-# Dashboard: http://localhost:4242
+```
+-n, --name string         Custom tunnel name
+--subdomain string        Alias for --name
+-k, --api-key string      Override API key
+--ip string               Local IP (default: 127.0.0.1)
+--remote-port int         Remote port (TCP only)
+--secret-key string       Secret key (STCP/XTCP)
+--encrypt                 Enable encryption
+--compress                Enable compression
+--bandwidth string        Limit bandwidth (e.g., "1MB")
 ```
 
-#### Webhook Testing
-```bash
-# Start local webhook server
-python -m http.server 8000
+---
 
-# Create tunnel (random name)
-lrok 8000
-
-# Output shows your public URL:
-# 🌐 https://clever-fox.t.lum.tools
-# 📊 http://localhost:4242
-
-# Use the public URL in your webhook provider
-# Watch requests live in the dashboard!
-```
-
-### TCP Tunnels (Direct Port Forwarding)
-
-#### Expose PostgreSQL Database
-```bash
-# Start PostgreSQL (running on port 5432)
-sudo systemctl start postgresql
-
-# Create TCP tunnel
-lrok tcp 5432 --remote-port 10001
-
-# Connect from anywhere:
-# psql -h frp.lum.tools -p 10001 -U myuser mydb
-```
-
-#### Expose SSH Server
-```bash
-# Start SSH server (running on port 22)
-sudo systemctl start ssh
-
-# Create TCP tunnel with encryption
-lrok tcp 22 --remote-port 10002 --encrypt --compress
-
-# SSH from anywhere:
-# ssh -p 10002 user@frp.lum.tools
-```
-
-#### Expose Redis Server
-```bash
-# Start Redis (running on port 6379)
-redis-server
-
-# Create TCP tunnel
-lrok tcp 6379 --remote-port 10003
-
-# Connect from anywhere:
-# redis-cli -h frp.lum.tools -p 10003
-```
-
-### STCP Tunnels (Secret TCP - Secure Access)
-
-#### Secure Database Access
-```bash
-# Server side: Expose PostgreSQL securely
-lrok stcp 5432 --secret-key my-secret-key --encrypt --compress
-
-# Client side: Connect as visitor
-lrok visitor tunnel-name --type stcp --secret-key my-secret-key --bind-port 5432
-
-# Now connect locally:
-# psql -h 127.0.0.1 -p 5432 -U myuser mydb
-```
-
-#### Secure SSH Access
-```bash
-# Server side: Expose SSH securely
-lrok stcp 22 --secret-key ssh-secret-123
-
-# Client side: Connect as visitor
-lrok visitor tunnel-name --type stcp --secret-key ssh-secret-123 --bind-port 2222
-
-# SSH locally:
-# ssh -p 2222 user@127.0.0.1
-```
-
-### XTCP Tunnels (P2P - Direct Connection)
-
-#### P2P File Transfer
-```bash
-# Server side: Expose file server via P2P
-lrok xtcp 8080 --secret-key p2p-file-transfer
-
-# Client side: Connect as visitor
-lrok visitor tunnel-name --type xtcp --secret-key p2p-file-transfer --bind-port 8080
-
-# Access locally: http://127.0.0.1:8080
-# If P2P fails, falls back to server relay automatically
-```
-
-#### P2P Web Development
-```bash
-# Developer side: Expose dev server via P2P
-lrok xtcp 3000 --secret-key dev-p2p-key
-
-# Client side: Connect as visitor
-lrok visitor tunnel-name --type xtcp --secret-key dev-p2p-key --bind-port 3000
-
-# Access locally: http://127.0.0.1:3000
-# Direct connection for better performance
-```
-
-### Multiple Tunnels (Different Terminals)
-
-```bash
-# Terminal 1: HTTP Frontend
-lrok 3000 -n frontend
-# → https://frontend.t.lum.tools
-
-# Terminal 2: TCP Backend API
-lrok tcp 8000 --remote-port 10001
-# → frp.lum.tools:10001
-
-# Terminal 3: Secure Database
-lrok stcp 5432 --secret-key db-secret
-# → Requires visitor connection
-```
-
-### Inspect HTTP Traffic
-
-Every tunnel includes a local dashboard at `http://localhost:4242`:
-
-- **Real-time request list**: See each request as it happens
-- **Request inspector**: Click any request to view:
-  - Full headers (in/out)
-  - Request/response bodies
-  - Status codes & timing
-  - Copy as cURL command
-
-Perfect for debugging webhooks, API integrations, or understanding what your app is doing!
-
-## Platform Dashboard
-
-Track all your tunnel activity at [platform.lum.tools/tunnels](https://platform.lum.tools/tunnels):
-
-- **Active tunnels**: See what's currently running
-- **Traffic stats**: Bytes in/out per tunnel
-- **Connection history**: Past tunnel sessions
-- **Total uptime**: Cumulative connection time
-
-All tracked automatically — no extra configuration needed.
-
-## How It Works
-
-lrok uses [frp](https://github.com/fatedier/frp) (Fast Reverse Proxy) under the hood, enhanced with:
-
-1. **Pre-configured** to connect to `frp.lum.tools:7000` (no setup required)
-2. **API Key Authentication** for secure tunnel creation
-3. **Automatic HTTPS** via Let's Encrypt wildcard certificates
-4. **Traffic Tracking** logged to your account automatically
-5. **Embedded binaries** - frpc is bundled, nothing to install separately
+## 💻 SDK Documentation
 
 ### Architecture
 
 ```
-Your App (localhost:8000)
-    ↓
-lrok CLI (local proxy + frpc)
-    ↓ (secure tunnel)
-frp.lum.tools (FRP server)
-    ↓ (HTTPS with SSL)
-Public Internet → https://your-tunnel.t.lum.tools
+┌─────────────────────────────────────────────────┐
+│         Your Application (Python/TS/etc)       │
+│                                                  │
+│  ┌────────────────────────────────────────┐   │
+│  │         lrok SDK Client                 │   │
+│  │  (HTTP REST API calls via port 4243)   │   │
+│  └────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────┘
+                      ↓ HTTP/JSON
+┌─────────────────────────────────────────────────┐
+│            lrok Daemon (Go)                      │
+│       REST API Server (port 4243)               │
+│  ┌────────────────────────────────────────┐   │
+│  │  Tunnel Manager + FRP Client           │   │
+│  └────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────┘
+                      ↓ Secure Tunnel
+┌─────────────────────────────────────────────────┐
+│     frp.lum.tools (FRP Server)                   │
+│          HTTPS + SSL Termination                │
+└─────────────────────────────────────────────────┘
+                      ↓
+            Public Internet
+    https://your-tunnel.t.lum.tools
 ```
 
-All traffic is encrypted end-to-end. The local dashboard intercepts requests for inspection without breaking the tunnel.
+### Python SDK Examples
 
-## Security
+**Create HTTP Tunnel:**
+```python
+from lrok import ApiClient, Configuration, TunnelsApi
+from lrok.models import CreateTunnelRequest
 
-- All tunnels use HTTPS with valid SSL certificates
-- API keys authenticate and authorize tunnel creation
-- All activity is logged and trackable
-- Rotate API keys anytime at [platform.lum.tools/keys](https://platform.lum.tools/keys)
+config = Configuration(host="http://localhost:4243")
+api = TunnelsApi(ApiClient(config))
 
-## Authentication Commands
+tunnel = api.create_tunnel(CreateTunnelRequest(
+    type="http",
+    local_port=8000,
+    subdomain="my-app",
+    encryption=True,
+    compression=True
+))
 
-Manage your API key credentials:
-
-```bash
-# Login (saves key to ~/.lrok/config.toml)
-lrok login lum_your_api_key_here
-
-# Check authentication status
-lrok whoami
-
-# Logout (removes saved key)
-lrok logout
+print(f"Public URL: {tunnel.public_url}")
+print(f"Tunnel ID: {tunnel.id}")
 ```
 
-**API Key Priority:**
-1. `--api-key` flag (highest priority, allows temporary override)
-2. `LUM_API_KEY` environment variable
-3. `~/.lrok/config.toml` file (saved via `lrok login`)
+**List Active Tunnels:**
+```python
+response = api.list_tunnels()
+for tunnel in response.tunnels:
+    print(f"{tunnel.name}: {tunnel.public_url}")
+```
 
-**Security:** Config file is created with `0600` permissions (owner-only read/write).
+**Get Tunnel Statistics:**
+```python
+stats = api.get_tunnel_stats(tunnel_id)
+print(f"Bytes In: {stats.bytes_in}")
+print(f"Bytes Out: {stats.bytes_out}")
+print(f"Connections: {stats.connections}")
+```
 
-## Reserved Subdomains
+**Inspect HTTP Requests:**
+```python
+response = api.get_tunnel_requests(tunnel_id, limit=100)
+for req in response.requests:
+    print(f"{req.method} {req.path} - {req.status_code} ({req.duration}ms)")
+```
 
-Reserve permanent tunnel URLs that only you can use. Each user can reserve up to 5 subdomains.
+### TypeScript SDK Examples
+
+**Create HTTP Tunnel:**
+```typescript
+import { Configuration, TunnelsApi, CreateTunnelRequest } from 'lrok';
+
+const config = new Configuration({ basePath: 'http://localhost:4243' });
+const api = new TunnelsApi(config);
+
+const { data: tunnel } = await api.createTunnel({
+  type: 'http',
+  localPort: 8000,
+  subdomain: 'my-app',
+  encryption: true,
+  compression: true
+});
+
+console.log(`Public URL: ${tunnel.publicUrl}`);
+```
+
+**TCP Tunnel:**
+```typescript
+const { data: tunnel } = await api.createTunnel({
+  type: 'tcp',
+  localPort: 5432,
+  remotePort: 10001,
+  encryption: true
+});
+
+console.log(`Connect at: frp.lum.tools:${tunnel.remotePort}`);
+```
+
+**Manage Subdomains:**
+```typescript
+import { SubdomainsApi } from 'lrok';
+
+const subdomainsApi = new SubdomainsApi(config);
+
+// Reserve subdomain
+await subdomainsApi.reserveSubdomain({ name: 'my-app' });
+
+// List reserved
+const { data } = await subdomainsApi.listSubdomains();
+console.log(data.subdomains);
+```
+
+### Supported Operations
+
+All SDKs support:
+- ✅ Create tunnels (HTTP, TCP, STCP, XTCP, Visitor)
+- ✅ List active tunnels
+- ✅ Get tunnel details
+- ✅ Delete tunnels
+- ✅ Get real-time statistics
+- ✅ Inspect HTTP requests
+- ✅ Reserve/manage subdomains
+- ✅ Authentication management
+
+---
+
+## 📖 Examples
+
+### Webhook Testing (Flask + Python SDK)
+
+```python
+from flask import Flask, request
+from lrok import TunnelsApi, ApiClient, Configuration
+from lrok.models import CreateTunnelRequest
+
+app = Flask(__name__)
+
+# Create tunnel
+config = Configuration(host="http://localhost:4243")
+api = TunnelsApi(ApiClient(config))
+tunnel = api.create_tunnel(CreateTunnelRequest(
+    type="http",
+    local_port=5000,
+    subdomain="webhook-test"
+))
+
+print(f"Webhook URL: {tunnel.public_url}/webhook")
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    data = request.json
+    print(f"Received webhook: {data}")
+    return {'status': 'received'}
+
+app.run(port=5000)
+```
+
+### CI/CD Testing (TypeScript)
+
+```typescript
+import { TunnelsApi, Configuration } from 'lrok';
+
+async function setupTestTunnel() {
+  const api = new TunnelsApi(
+    new Configuration({ basePath: 'http://localhost:4243' })
+  );
+
+  const { data: tunnel } = await api.createTunnel({
+    type: 'http',
+    localPort: 8080,
+    subdomain: `ci-test-${process.env.CI_RUN_ID}`
+  });
+
+  console.log(`Test at: ${tunnel.publicUrl}`);
+
+  return async () => {
+    await api.deleteTunnel(tunnel.id);
+  };
+}
+
+// In your test
+const cleanup = await setupTestTunnel();
+try {
+  // Run tests...
+} finally {
+  await cleanup();
+}
+```
+
+### Database Access (Secure STCP)
 
 ```bash
-# List your reserved subdomains
+# Server: Expose PostgreSQL securely
+lrok stcp 5432 --secret-key db-secret-key-123 --name prod-db
+
+# Client: Create visitor connection
+lrok visitor prod-db --type stcp --secret-key db-secret-key-123 --bind-port 5432
+
+# Now connect locally
+psql -h 127.0.0.1 -p 5432 -U postgres
+```
+
+---
+
+## 🏗️ Architecture
+
+lrok is built on [frp](https://github.com/fatedier/frp) (Fast Reverse Proxy) with enhancements:
+
+### Components
+
+1. **lrok CLI**: Command-line interface for quick tunneling
+2. **lrok Daemon**: HTTP REST API server (port 4243) for SDK access
+3. **FRP Client**: Embedded frp client for tunnel connections
+4. **FRP Server**: `frp.lum.tools:7000` (managed by lum.tools)
+5. **HTTPS Gateway**: Automatic SSL with Let's Encrypt
+
+### How It Works
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                   Your Local Machine                      │
+│                                                            │
+│  ┌─────────────┐    ┌──────────────┐   ┌─────────────┐  │
+│  │   Your App  │←───│  lrok Daemon │───│  lrok CLI   │  │
+│  │ (port 8000) │    │  (port 4243) │   │   or SDK    │  │
+│  └─────────────┘    └──────────────┘   └─────────────┘  │
+│                            ↓                               │
+│                     ┌──────────────┐                      │
+│                     │  FRP Client  │                      │
+│                     │  (embedded)  │                      │
+│                     └──────────────┘                      │
+└──────────────────────────┼───────────────────────────────┘
+                           ↓ Encrypted Tunnel
+                    ┌──────────────┐
+                    │  FRP Server  │
+                    │ frp.lum.tools│
+                    │   (port 7000)│
+                    └──────────────┘
+                           ↓
+                    ┌──────────────┐
+                    │ HTTPS Gateway│
+                    │  SSL + DNS   │
+                    └──────────────┘
+                           ↓
+              https://your-tunnel.t.lum.tools
+```
+
+### Key Features
+
+- **Pre-configured**: Connects to `frp.lum.tools:7000` automatically
+- **API Key Auth**: Secure tunnel creation with your lum.tools account
+- **Automatic HTTPS**: Let's Encrypt wildcard certificates
+- **Traffic Tracking**: All activity logged to your account
+- **Request Inspector**: Built-in HTTP request/response viewer (port 4242)
+
+---
+
+## 🔧 Development & Publishing
+
+### For Maintainers: SDK Generation
+
+SDKs are automatically generated from the OpenAPI specification (`api/openapi.yaml`):
+
+```bash
+# Generate all SDKs
+./scripts/generate-sdks.sh
+
+# Run SDK tests
+./scripts/test-sdks.sh
+
+# Generated in:
+# - sdk/python/
+# - sdk/nodejs/
+# - sdk/ruby/
+# - sdk/go/
+```
+
+### Publishing SDKs
+
+#### Python SDK (PyPI)
+
+```bash
+# Build
+cd sdk/python
+python setup.py sdist bdist_wheel
+
+# Test upload
+twine upload --repository testpypi dist/*
+
+# Production upload
+twine upload dist/*
+```
+
+**Required credentials:**
+```bash
+# ~/.pypirc
+[pypi]
+username = __token__
+password = pypi-your-token-here
+```
+
+#### TypeScript SDK (npm)
+
+```bash
+# Build
+cd sdk/nodejs
+npm install
+npm run build
+
+# Test publish
+npm publish --dry-run
+
+# Production publish
+npm publish --access public
+```
+
+**Required credentials:**
+```bash
+# Login to npm
+npm login
+
+# Or use token
+echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > ~/.npmrc
+```
+
+**Note:** Only Python and TypeScript SDKs are published to package registries. Other language SDKs (Ruby, Go) are generated but distributed via direct download or included in the main repository.
+
+### CI/CD Integration
+
+GitHub Actions automatically:
+- Validates OpenAPI spec
+- Generates SDKs
+- Runs E2E tests (Python, TypeScript)
+- Publishes to PyPI and npm on release tags
+
+See `.github/workflows/sdk-tests.yml` for details.
+
+---
+
+## 📊 Request Inspector Dashboard
+
+Every HTTP tunnel includes a beautiful web dashboard at `http://localhost:4242`:
+
+**Features:**
+- Real-time request list
+- Click to view full request/response
+- Headers inspection (in/out)
+- Body viewer (JSON, HTML, text)
+- Status codes & timing
+- Copy as cURL command
+
+Perfect for debugging webhooks and API integrations!
+
+---
+
+## 🎯 Reserved Subdomains
+
+Reserve permanent tunnel URLs exclusively for your use:
+
+```bash
+# List reserved subdomains
 lrok subdomains list
 
-# Reserve a subdomain (claim it permanently)
+# Reserve a subdomain
 lrok subdomains reserve my-app
-# → Now only YOU can use my-app.t.lum.tools
+# → Only YOU can use my-app.t.lum.tools
 
-# Release a subdomain (make it available again)
+# Release subdomain
 lrok subdomains delete my-app
 ```
 
-**Why reserve subdomains?**
-- **Consistent URLs**: Always use the same URL for your projects
-- **Exclusive access**: No one else can use your reserved subdomains
-- **Professional appearance**: Use meaningful names like `api.t.lum.tools` or `demo.t.lum.tools`
+**Benefits:**
+- Consistent URLs across sessions
+- Exclusive access
+- Professional appearance
+- Up to 5 free reservations per account
 
-**How it works:**
-- When you use a subdomain (e.g., `lrok 8000 -n myapp`), it's automatically reserved for you
-- Reserved subdomains can only be used by your API key
-- You can manage reservations via CLI or web UI at [lrok.lum.tools/subdomains](https://lrok.lum.tools/subdomains)
+---
 
-```bash
-# Use your reserved subdomain
-lrok 8000 -n my-app
-# → https://my-app.t.lum.tools (guaranteed to be yours)
-```
-
-## Troubleshooting
+## 🐛 Troubleshooting
 
 ### "No API key configured"
 
-Login with your API key:
 ```bash
+# Login
 lrok login lum_your_key
+
+# Or export
+export LUM_API_KEY='lum_your_key'
+
+# Check status
+lrok whoami
 ```
 
-Or use environment variable:
+### "Connection refused" (SDK)
+
+Make sure daemon is running:
 ```bash
-export LUM_API_KEY='lum_your_key'
+lrok daemon --port 4243
 ```
 
 ### "Invalid API key"
 
-- Verify your key at [platform.lum.tools/keys](https://platform.lum.tools/keys)
+- Verify at [platform.lum.tools/keys](https://platform.lum.tools/keys)
 - Ensure it starts with `lum_`
-- Check for extra spaces or quotes
-- Try running `lrok whoami` to check current auth
+- No extra spaces or quotes
 
-### Connection Issues
+### Port Already in Use
 
-- Verify `frp.lum.tools` is reachable
-- Check firewall isn't blocking port 7000
-- Try a different network
+Change daemon port:
+```bash
+# Start daemon on different port
+lrok daemon --port 4244
 
-## Contributing
-
-Issues and PRs welcome at [github.com/lum-tools/lrok](https://github.com/lum-tools/lrok)
-
-## License
-
-MIT License - see LICENSE file
-
-## Links
-
-- Platform: [platform.lum.tools](https://platform.lum.tools)
-- Tunnels Dashboard: [platform.lum.tools/tunnels](https://platform.lum.tools/tunnels)
-- API Keys: [platform.lum.tools/keys](https://platform.lum.tools/keys)
-- Blog: [blog.lum.tools](https://blog.lum.tools)
-- GitHub: [github.com/lum-tools/lrok](https://github.com/lum-tools/lrok)
+# Update SDK config
+config = Configuration(host="http://localhost:4244")
+```
 
 ---
 
-**Made with ❤️ by [platform.lum.tools](https://platform.lum.tools)**
+## 🤝 Contributing
 
+Issues and PRs welcome at [github.com/lum-tools/lrok](https://github.com/lum-tools/lrok)
+
+### Adding New Features
+
+1. Update `api/openapi.yaml` with new endpoints
+2. Regenerate SDKs: `./scripts/generate-sdks.sh`
+3. Add tests
+4. Submit PR
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) file
+
+---
+
+## 🔗 Links
+
+- **lrok Interface**: [lrok.lum.tools](https://lrok.lum.tools) - Dedicated web interface for lrok
+- **Platform**: [platform.lum.tools](https://platform.lum.tools) - Account management
+- **Tunnels Dashboard**: [platform.lum.tools/tunnels](https://platform.lum.tools/tunnels) - Track your tunnels
+- **API Keys**: [platform.lum.tools/keys](https://platform.lum.tools/keys) - Manage API keys
+- **Blog**: [blog.lum.tools](https://blog.lum.tools) - Updates and tutorials
+- **GitHub**: [github.com/lum-tools/lrok](https://github.com/lum-tools/lrok) - Source code
+- **OpenAPI Spec**: [`api/openapi.yaml`](api/openapi.yaml) - API specification
+- **SDK Documentation**: [`SDK_README.md`](SDK_README.md) - Detailed SDK docs
+
+---
+
+**Made with ❤️ by [lum.tools](https://platform.lum.tools)**
+
+*Expose localhost. Build faster. Ship with confidence.*
