@@ -29,6 +29,7 @@ var (
 	subdomain string
 	apiKey    string
 	localIP   string
+	auth      string
 )
 
 var rootCmd = &cobra.Command{
@@ -41,7 +42,8 @@ Expose your local services to the internet with HTTPS and readable URLs.
 Examples:
   lrok 8000                    # Expose port 8000 with random name
   lrok 8000 --name my-app      # Expose with custom name
-  lrok 3000 --subdomain api    # Use subdomain instead`,
+  lrok 3000 --subdomain api    # Use subdomain instead
+  lrok 8000 --auth user:pass   # Protect with basic auth`,
 	Args:    cobra.MaximumNArgs(1),
 	Version: versionInfo,
 	RunE:    runTunnel,
@@ -63,7 +65,7 @@ var versionCmd = &cobra.Command{
 		fmt.Printf("lrok version %s\n", versionInfo)
 		fmt.Printf("commit: %s\n", commit)
 		fmt.Printf("built: %s\n", date)
-		
+
 		// Check for updates (non-blocking)
 		if hasUpdate, latest, method, err := version.CheckForUpdate(versionInfo); err == nil && hasUpdate {
 			fmt.Println()
@@ -83,24 +85,24 @@ Get your API key from: https://platform.lum.tools/keys`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		apiKey := args[0]
-		
+
 		// Validate API key format
 		if !strings.HasPrefix(apiKey, "lum_") {
 			return fmt.Errorf("invalid API key format (should start with 'lum_')")
 		}
-		
+
 		// Save to config
 		if err := config.SaveAPIKey(apiKey); err != nil {
 			return fmt.Errorf("failed to save API key: %w", err)
 		}
-		
+
 		configPath, _ := config.GetConfigPath()
 		fmt.Println("✅ API key saved successfully!")
 		fmt.Printf("   Config: %s\n", configPath)
 		fmt.Println()
 		fmt.Println("You can now run lrok without setting LUM_API_KEY:")
 		fmt.Println("   lrok 8000")
-		
+
 		return nil
 	},
 }
@@ -113,10 +115,10 @@ var logoutCmd = &cobra.Command{
 		if err := config.ClearConfig(); err != nil {
 			return fmt.Errorf("failed to logout: %w", err)
 		}
-		
+
 		fmt.Println("✅ Logged out successfully!")
 		fmt.Println("   API key removed from config")
-		
+
 		return nil
 	},
 }
@@ -129,7 +131,7 @@ var whoamiCmd = &cobra.Command{
 		// Try to get API key from different sources
 		var apiKey string
 		var source string
-		
+
 		// Check flag (if this was called with --api-key)
 		if apiKey == "" {
 			apiKey = os.Getenv("LUM_API_KEY")
@@ -137,7 +139,7 @@ var whoamiCmd = &cobra.Command{
 				source = "environment variable (LUM_API_KEY)"
 			}
 		}
-		
+
 		// Check config file
 		if apiKey == "" {
 			if key, err := config.GetAPIKey(); err == nil {
@@ -146,7 +148,7 @@ var whoamiCmd = &cobra.Command{
 				source = fmt.Sprintf("config file (%s)", configPath)
 			}
 		}
-		
+
 		if apiKey == "" {
 			fmt.Println("❌ Not logged in")
 			fmt.Println()
@@ -159,17 +161,17 @@ var whoamiCmd = &cobra.Command{
 			fmt.Println("Get your API key: https://platform.lum.tools/keys")
 			return nil
 		}
-		
+
 		// Show prefix only for security
 		prefix := apiKey
 		if len(apiKey) > 16 {
 			prefix = apiKey[:16] + "..." + apiKey[len(apiKey)-4:]
 		}
-		
+
 		fmt.Println("✅ Logged in")
 		fmt.Printf("   API Key: %s\n", prefix)
 		fmt.Printf("   Source:  %s\n", source)
-		
+
 		return nil
 	},
 }
@@ -181,6 +183,7 @@ func init() {
 	rootCmd.Flags().StringVar(&subdomain, "subdomain", "", "Alias for --name")
 	rootCmd.Flags().StringVarP(&apiKey, "api-key", "k", "", "lum.tools platform API key (or set LUM_API_KEY env var)")
 	rootCmd.Flags().StringVar(&localIP, "ip", "127.0.0.1", "Local IP address to bind to")
+	rootCmd.Flags().StringVar(&auth, "auth", "", "Enforce basic auth on tunnel (user:password)")
 
 	// Flags for http command (same as root)
 	httpCmd.Flags().IntVarP(&port, "port", "p", 0, "Local port to expose (optional if provided as argument)")
@@ -188,6 +191,7 @@ func init() {
 	httpCmd.Flags().StringVar(&subdomain, "subdomain", "", "Alias for --name")
 	httpCmd.Flags().StringVarP(&apiKey, "api-key", "k", "", "API key")
 	httpCmd.Flags().StringVar(&localIP, "ip", "127.0.0.1", "Local IP to bind to")
+	httpCmd.Flags().StringVar(&auth, "auth", "", "Enforce basic auth on tunnel (user:password)")
 
 	rootCmd.AddCommand(httpCmd)
 	rootCmd.AddCommand(tcpCmd)
@@ -206,7 +210,7 @@ func runTunnel(cmd *cobra.Command, args []string) error {
 	if err := version.PromptForUpdate(versionInfo); err != nil {
 		return err
 	}
-	
+
 	// Get port from args or flag
 	if len(args) > 0 {
 		// Port provided as argument (e.g., "lrok 8000")
@@ -232,7 +236,7 @@ Run 'lrok --help' for more examples.`)
 
 	// Get API key with priority: flag > env var > config file
 	var apiKeySource string
-	
+
 	if apiKey == "" {
 		// Try environment variable
 		apiKey = os.Getenv("LUM_API_KEY")
@@ -279,7 +283,7 @@ Or pass it directly:
 		fmt.Println("⚠️  Warning: API key should start with 'lum_'")
 		fmt.Println("   Make sure you're using a valid platform API key from https://platform.lum.tools/keys")
 	}
-	
+
 	// Show API key source for transparency (debug mode or verbose)
 	_ = apiKeySource // Used for debugging, currently unused in output
 
@@ -310,6 +314,17 @@ Or pass it directly:
 
 	fmt.Printf("✅ Proxy ready on port %d (forwarding to %d)\n", proxyPort, port)
 
+	// Parse auth flag
+	var authUser, authPassword string
+	if auth != "" {
+		parts := strings.SplitN(auth, ":", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid auth format: must be user:password")
+		}
+		authUser = parts[0]
+		authPassword = parts[1]
+	}
+
 	// Generate config with proxy port (frpc forwards to proxy, proxy forwards to user app)
 	cfg := &config.TunnelConfig{
 		APIKey:            apiKey,
@@ -317,6 +332,8 @@ Or pass it directly:
 		LocalIP:           localIP,
 		Subdomain:         tunnelName,
 		ExplicitSubdomain: explicitSubdomain,
+		AuthUser:          authUser,
+		AuthPassword:      authPassword,
 	}
 
 	configPath, err := config.GenerateTOML(cfg)
@@ -326,13 +343,14 @@ Or pass it directly:
 
 	// Start dashboard with proxy
 	stats := &dashboard.Stats{
-		TunnelName: tunnelName,
-		PublicURL:  tunnelURL,
-		LocalPort:  port,
-		Status:     "Connected",
-		StartTime:  time.Now(),
+		TunnelName:  tunnelName,
+		PublicURL:   tunnelURL,
+		LocalPort:   port,
+		Status:      "Connected",
+		AuthEnabled: authUser != "",
+		StartTime:   time.Now(),
 	}
-	
+
 	dash := dashboard.New(stats, prox)
 	if err := dash.Start(4242); err != nil {
 		// Dashboard failed to start, continue anyway
@@ -343,21 +361,21 @@ Or pass it directly:
 
 	fmt.Println("\n🚀 Starting lrok tunnel...")
 	fmt.Println("⏳ Connecting to frp.lum.tools...")
-	
+
 	// Start tunnel
 	mgr := tunnel.New(configPath)
-	defer mgr.Cleanup()
-	
+	// defer mgr.Cleanup()
+
 	// Start tunnel with graceful shutdown (this is blocking until Ctrl+C)
 	// We'll verify in a separate goroutine
 	go func() {
 		// Wait a bit for tunnel to connect, then verify
 		time.Sleep(3 * time.Second)
-		
+
 		fmt.Println("🔍 Verifying tunnel...")
 		client := &http.Client{Timeout: 5 * time.Second}
 		verified := false
-		
+
 		for i := 0; i < 10; i++ {
 			resp, err := client.Get(tunnelURL + "/")
 			if err == nil {
@@ -369,16 +387,19 @@ Or pass it directly:
 			}
 			time.Sleep(500 * time.Millisecond)
 		}
-		
+
 		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 		fmt.Printf("  📍 Local:      http://%s:%d\n", localIP, port)
 		fmt.Printf("  🌐 Public URL: %s\n", tunnelURL)
 		fmt.Printf("  🏷️  Name:       %s\n", tunnelName)
+		if authUser != "" {
+			fmt.Printf("  🔒 Auth:       Enabled (%s)\n", authUser)
+		}
 		if dash.Port() > 0 {
 			fmt.Printf("  📊 Dashboard:  http://localhost:%d\n", dash.Port())
 		}
 		fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-		
+
 		if verified {
 			fmt.Println("\n✅ Tunnel is ready and verified!")
 		} else {
@@ -390,12 +411,21 @@ Or pass it directly:
 	if err := mgr.StartWithGracefulShutdown(); err != nil {
 		if err == tunnel.ErrSubdomainLimit {
 			fmt.Println()
-			fmt.Println("❌ Subdomain limit reached: You have reached the maximum of 5 reserved subdomains")
+			fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+			fmt.Println("❌ Free tier limit reached: 5 reserved subdomains")
+			fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 			fmt.Println()
-			fmt.Println("To manage your subdomains:")
-			fmt.Println("  • Web UI: https://lrok.lum.tools/subdomains")
-			fmt.Println("  • CLI: lrok subdomains list")
-			fmt.Println("  • Release one: lrok subdomains delete <subdomain>")
+			fmt.Println("📦 Upgrade to lrok Pro (€9/month) for:")
+			fmt.Println("   • 50 reserved subdomains")
+			fmt.Println("   • Unlimited concurrent tunnels")
+			fmt.Println("   • TCP/UDP protocols")
+			fmt.Println("   • Priority support")
+			fmt.Println()
+			fmt.Println("👉 Upgrade now: https://platform.lum.tools/billing")
+			fmt.Println()
+			fmt.Println("Or manage your subdomains:")
+			fmt.Println("   lrok subdomains list")
+			fmt.Println("   lrok subdomains delete <name>")
 			fmt.Println()
 		}
 		return err
@@ -409,4 +439,3 @@ func main() {
 		os.Exit(1)
 	}
 }
-

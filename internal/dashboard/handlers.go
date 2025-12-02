@@ -51,6 +51,11 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	stats := s.stats.GetStats()
 	uptime := time.Since(stats.StartTime).Round(time.Second)
 	
+	authBadge := ""
+	if stats.AuthEnabled {
+		authBadge = `<span class="status" style="background: rgba(255, 128, 0, 0.2); color: #FF8000; margin-left: 8px;">🔒 Auth Enabled</span>`
+	}
+
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -114,18 +119,16 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
     </style>
 </head>
 <body>
-    <div class="container">
+        <div class="container">
         <div class="header">
             <div class="logo">lrok</div>
-            <div class="status">%s</div>
+            <div class="status">Online</div>
+            %s
         </div>
         
         <div class="card">
-            <h2 style="margin-bottom: 12px; font-size: 16px; color: #f0f0f0;">🌐 Public URL</h2>
-            <div class="url">%s</div>
-            <div class="info">
-                📍 Forwarding to: <code style="color: #10b981;">localhost:%d</code>
-            </div>
+            <div class="url"><a href="%s" target="_blank" style="color: inherit; text-decoration: none;">%s</a></div>
+            <div style="font-size: 13px; color: #888;">Forwarding to <span style="color: #f0f0f0;">http://localhost:%d</span></div>
         </div>
         
         <div class="card">
@@ -329,7 +332,8 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 </body>
 </html>`,
 		stats.TunnelName,
-		stats.Status,
+		authBadge,
+		stats.PublicURL,
 		stats.PublicURL,
 		stats.LocalPort,
 		uptime.String(),

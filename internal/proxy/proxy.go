@@ -71,10 +71,14 @@ func (p *Proxy) Start() (int, error) {
 	
 	proxy := httputil.NewSingleHostReverseProxy(p.targetURL)
 	
-	// Customize the director to capture requests
+	// Customize the director to capture requests and fix Host header for Chrome CDP
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		originalDirector(req)
+		// Chrome CDP requires Host header to be localhost or IP
+		// Rewrite it to match the target
+		req.Host = p.targetURL.Host
+		req.Header.Set("Host", p.targetURL.Host)
 	}
 	
 	// Custom transport to capture response

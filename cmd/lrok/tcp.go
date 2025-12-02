@@ -198,12 +198,21 @@ Or pass it directly:
 	if err := mgr.StartWithGracefulShutdown(); err != nil {
 		if err == tunnel.ErrSubdomainLimit {
 			fmt.Println()
-			fmt.Println("❌ Subdomain limit reached: You have reached the maximum of 5 reserved subdomains")
+			fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+			fmt.Println("❌ Free tier limit reached: 5 reserved subdomains")
+			fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 			fmt.Println()
-			fmt.Println("To manage your subdomains:")
-			fmt.Println("  • Web UI: https://lrok.lum.tools/subdomains")
-			fmt.Println("  • CLI: lrok subdomains list")
-			fmt.Println("  • Release one: lrok subdomains delete <subdomain>")
+			fmt.Println("📦 Upgrade to lrok Pro (€9/month) for:")
+			fmt.Println("   • 50 reserved subdomains")
+			fmt.Println("   • Unlimited concurrent tunnels")
+			fmt.Println("   • TCP/UDP protocols")
+			fmt.Println("   • Priority support")
+			fmt.Println()
+			fmt.Println("👉 Upgrade now: https://platform.lum.tools/billing")
+			fmt.Println()
+			fmt.Println("Or manage your subdomains:")
+			fmt.Println("   lrok subdomains list")
+			fmt.Println("   lrok subdomains delete <name>")
 			fmt.Println()
 		}
 		return err

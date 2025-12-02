@@ -188,7 +188,11 @@ func runSubdomainsList(cmd *cobra.Command, args []string) error {
 	}
 
 	// Display results
-	fmt.Printf("\n✅ Reserved Subdomains (%d/%d)\n", result.Count, result.MaxAllowed)
+	maxAllowedStr := fmt.Sprintf("%d", result.MaxAllowed)
+	if result.MaxAllowed >= 999999 {
+		maxAllowedStr = "Unlimited"
+	}
+	fmt.Printf("\n✅ Reserved Subdomains (%d/%s)\n", result.Count, maxAllowedStr)
 	fmt.Println(strings.Repeat("─", 60))
 
 	if result.Count == 0 {
@@ -256,13 +260,23 @@ func runSubdomainsReserve(cmd *cobra.Command, args []string) error {
 			if strings.Contains(strings.ToLower(result.Reason), "maximum") || 
 			   strings.Contains(strings.ToLower(result.Reason), "limit") ||
 			   strings.Contains(strings.ToLower(result.Reason), "reached") {
-				fmt.Printf("\n❌ Subdomain limit reached\n")
-				fmt.Printf("   %s\n", result.Reason)
 				fmt.Println()
-				fmt.Println("To manage your subdomains:")
-				fmt.Println("  • List: lrok subdomains list")
-				fmt.Println("  • Delete: lrok subdomains delete <subdomain>")
-				fmt.Println("  • Web UI: https://lrok.lum.tools/subdomains")
+				fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+				fmt.Println("❌ Free tier limit reached: 5 reserved subdomains")
+				fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+				fmt.Println()
+				fmt.Println("📦 Upgrade to lrok Pro (€9/month) for:")
+				fmt.Println("   • 50 reserved subdomains")
+				fmt.Println("   • Unlimited concurrent tunnels")
+				fmt.Println("   • TCP/UDP protocols")
+				fmt.Println("   • Priority support")
+				fmt.Println()
+				fmt.Println("👉 Upgrade now: https://platform.lum.tools/billing")
+				fmt.Println()
+				fmt.Println("Or manage your subdomains:")
+				fmt.Println("   lrok subdomains list")
+				fmt.Println("   lrok subdomains delete <name>")
+				fmt.Println()
 				return fmt.Errorf("maximum subdomains reached")
 			}
 			fmt.Printf("\n❌ Failed to reserve subdomain\n")
@@ -287,13 +301,23 @@ func runSubdomainsReserve(cmd *cobra.Command, args []string) error {
 		if strings.Contains(strings.ToLower(result.Reason), "maximum") || 
 		   strings.Contains(strings.ToLower(result.Reason), "limit") ||
 		   strings.Contains(strings.ToLower(result.Reason), "reached") {
-			fmt.Printf("\n❌ Subdomain limit reached\n")
-			fmt.Printf("   %s\n", result.Reason)
 			fmt.Println()
-			fmt.Println("To manage your subdomains:")
-			fmt.Println("  • List: lrok subdomains list")
-			fmt.Println("  • Delete: lrok subdomains delete <subdomain>")
-			fmt.Println("  • Web UI: https://lrok.lum.tools/subdomains")
+			fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+			fmt.Println("❌ Free tier limit reached: 5 reserved subdomains")
+			fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+			fmt.Println()
+			fmt.Println("📦 Upgrade to lrok Pro (€9/month) for:")
+			fmt.Println("   • 50 reserved subdomains")
+			fmt.Println("   • Unlimited concurrent tunnels")
+			fmt.Println("   • TCP/UDP protocols")
+			fmt.Println("   • Priority support")
+			fmt.Println()
+			fmt.Println("👉 Upgrade now: https://platform.lum.tools/billing")
+			fmt.Println()
+			fmt.Println("Or manage your subdomains:")
+			fmt.Println("   lrok subdomains list")
+			fmt.Println("   lrok subdomains delete <name>")
+			fmt.Println()
 			return fmt.Errorf("maximum subdomains reached")
 		}
 		fmt.Printf("\n❌ Failed to reserve subdomain\n")

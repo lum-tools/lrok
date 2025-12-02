@@ -17,6 +17,7 @@ type Stats struct {
 	PublicURL    string    `json:"public_url"`
 	LocalPort    int       `json:"local_port"`
 	Status       string    `json:"status"`
+	AuthEnabled  bool      `json:"auth_enabled"`
 	StartTime    time.Time `json:"start_time"`
 	BytesIn      int64     `json:"bytes_in"`
 	BytesOut     int64     `json:"bytes_out"`
@@ -42,6 +43,7 @@ func (s *Stats) GetStats() Stats {
 		PublicURL:   s.PublicURL,
 		LocalPort:   s.LocalPort,
 		Status:      s.Status,
+		AuthEnabled: s.AuthEnabled,
 		StartTime:   s.StartTime,
 		BytesIn:     s.BytesIn,
 		BytesOut:    s.BytesOut,

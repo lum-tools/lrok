@@ -28,6 +28,8 @@ type TunnelConfig struct {
 	UseEncryption     bool
 	UseCompression    bool
 	HealthCheckType   string // tcp, http
+	AuthUser          string // Basic Auth User
+	AuthPassword      string // Basic Auth Password
 }
 
 // GenerateTOML creates a frpc TOML configuration file and returns the path
@@ -56,7 +58,11 @@ func GenerateTOML(cfg *TunnelConfig) (string, error) {
 	if cfg.ExplicitSubdomain {
 		metadataLines = append(metadataLines, `metadatas.explicit_subdomain = "true"`)
 	}
-	
+
+	if cfg.AuthUser != "" && cfg.AuthPassword != "" {
+		metadataLines = append(metadataLines, `metadatas.auth_enabled = "true"`)
+	}
+
 	if cfg.RemotePort > 0 {
 		metadataLines = append(metadataLines, fmt.Sprintf(`metadatas.remote_port = "%d"`, cfg.RemotePort))
 	}
@@ -87,7 +93,12 @@ localIP = "%s"
 localPort = %d
 subdomain = "%s"`,
 			cfg.Subdomain, cfg.ProxyType, cfg.LocalIP, cfg.LocalPort, cfg.Subdomain)
-		
+
+		if cfg.AuthUser != "" && cfg.AuthPassword != "" {
+			proxyConfig += fmt.Sprintf("\nhttpUser = \"%s\"", cfg.AuthUser)
+			proxyConfig += fmt.Sprintf("\nhttpPassword = \"%s\"", cfg.AuthPassword)
+		}
+
 	case "tcp":
 		if cfg.RemotePort == 0 {
 			return "", fmt.Errorf("remote port is required for %s tunnels", cfg.ProxyType)
@@ -99,7 +110,7 @@ localIP = "%s"
 localPort = %d
 remotePort = %d`,
 			cfg.Subdomain, cfg.ProxyType, cfg.LocalIP, cfg.LocalPort, cfg.RemotePort)
-		
+
 	case "stcp", "xtcp":
 		if cfg.SecretKey == "" {
 			return "", fmt.Errorf("secret key is required for %s tunnels", cfg.ProxyType)
@@ -111,7 +122,7 @@ secretKey = "%s"
 localIP = "%s"
 localPort = %d`,
 			cfg.Subdomain, cfg.ProxyType, cfg.SecretKey, cfg.LocalIP, cfg.LocalPort)
-		
+
 	default:
 		return "", fmt.Errorf("unsupported proxy type: %s", cfg.ProxyType)
 	}
@@ -228,4 +239,3 @@ log.level = "info"
 
 	return configPath, nil
 }
-
