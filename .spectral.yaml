@@ -14,7 +14,7 @@ rules:
   oas3-parameter-description: warn
 
   # Ensure all schemas have examples
-  oas3-schema-example: off  # Too strict for now
+  oas3-schema-example: off # Too strict for now
 
   # Ensure consistent naming
   operation-operationId-valid-in-url: error

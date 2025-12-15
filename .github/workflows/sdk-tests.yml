@@ -2,7 +2,7 @@ name: SDK E2E Tests
 
 on:
   push:
-    branches: [main, develop, 'claude/**']
+    branches: [main, develop, "claude/**"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -13,9 +13,9 @@ permissions:
   issues: write
 
 env:
-  GO_VERSION: '1.22.2'
-  NODE_VERSION: '18'
-  PYTHON_VERSION: '3.11'
+  GO_VERSION: "1.22.2"
+  NODE_VERSION: "18"
+  PYTHON_VERSION: "3.11"
 
 jobs:
   # Validate OpenAPI spec

@@ -8,8 +8,11 @@ import (
 )
 
 const (
-	DefaultServerAddr = "142.132.245.5"
-	DefaultServerPort = 7000
+	DefaultServerAddr   = "frp.lum.tools"
+	DefaultServerPort   = 7000
+	PremiumServerPort   = 7001
+	DefaultDomain       = "t.lum.tools"
+	PremiumDomain       = "lrok.space"
 )
 
 // TunnelConfig represents the configuration for a tunnel
@@ -30,6 +33,37 @@ type TunnelConfig struct {
 	HealthCheckType   string // tcp, http
 	AuthUser          string // Basic Auth User
 	AuthPassword      string // Basic Auth Password
+	Domain            string // Domain pool: t.lum.tools (default) or lrok.space (premium)
+}
+
+// GetTunnelDomain returns the full tunnel domain
+func (cfg *TunnelConfig) GetTunnelDomain() string {
+	domain := cfg.Domain
+	if domain == "" {
+		domain = DefaultDomain
+	}
+	return domain
+}
+
+// GetServerPort returns the appropriate server port for the domain
+func (cfg *TunnelConfig) GetServerPort() int {
+	if cfg.ServerPort != 0 {
+		return cfg.ServerPort // User-specified port takes precedence
+	}
+	if cfg.Domain == PremiumDomain {
+		return PremiumServerPort
+	}
+	return DefaultServerPort
+}
+
+// GetTunnelURL returns the full tunnel URL
+func (cfg *TunnelConfig) GetTunnelURL() string {
+	return fmt.Sprintf("https://%s.%s", cfg.Subdomain, cfg.GetTunnelDomain())
+}
+
+// IsPremiumDomain checks if using premium domain pool
+func (cfg *TunnelConfig) IsPremiumDomain() bool {
+	return cfg.Domain == PremiumDomain
 }
 
 // GenerateTOML creates a frpc TOML configuration file and returns the path
@@ -37,9 +71,7 @@ func GenerateTOML(cfg *TunnelConfig) (string, error) {
 	if cfg.ServerAddr == "" {
 		cfg.ServerAddr = DefaultServerAddr
 	}
-	if cfg.ServerPort == 0 {
-		cfg.ServerPort = DefaultServerPort
-	}
+	serverPort := cfg.GetServerPort()
 	if cfg.LocalIP == "" {
 		cfg.LocalIP = "127.0.0.1"
 	}
@@ -52,6 +84,7 @@ func GenerateTOML(cfg *TunnelConfig) (string, error) {
 		fmt.Sprintf(`metadatas.api_key = "%s"`, cfg.APIKey),
 		fmt.Sprintf(`metadatas.local_port = "%d"`, cfg.LocalPort),
 		fmt.Sprintf(`metadatas.proxy_type = "%s"`, cfg.ProxyType),
+		fmt.Sprintf(`metadatas.domain = "%s"`, cfg.GetTunnelDomain()),
 	}
 
 	// Add explicit_subdomain flag if user explicitly specified subdomain
@@ -156,6 +189,10 @@ localPort = %d`,
 serverAddr = "%s"
 serverPort = %d
 
+# Authentication
+auth.method = "token"
+auth.token = "%s"
+
 log.level = "info"
 
 # Pass configuration in metadata for plugin authentication and tracking
@@ -164,7 +201,8 @@ log.level = "info"
 %s
 `,
 		cfg.ServerAddr,
-		cfg.ServerPort,
+		serverPort,
+		cfg.APIKey,
 		strings.Join(metadataLines, "\n"),
 		proxyConfig,
 	)
@@ -216,6 +254,10 @@ bindPort = %d`,
 serverAddr = "%s"
 serverPort = %d
 
+# Authentication
+auth.method = "token"
+auth.token = "%s"
+
 log.level = "info"
 
 # Pass configuration in metadata for plugin authentication and tracking
@@ -225,6 +267,7 @@ log.level = "info"
 `,
 		cfg.ServerAddr,
 		cfg.ServerPort,
+		cfg.APIKey,
 		strings.Join(metadataLines, "\n"),
 		visitorConfig,
 	)

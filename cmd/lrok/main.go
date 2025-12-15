@@ -30,6 +30,8 @@ var (
 	apiKey    string
 	localIP   string
 	auth      string
+	serverAddr string
+	domain     string
 )
 
 var rootCmd = &cobra.Command{
@@ -184,6 +186,8 @@ func init() {
 	rootCmd.Flags().StringVarP(&apiKey, "api-key", "k", "", "lum.tools platform API key (or set LUM_API_KEY env var)")
 	rootCmd.Flags().StringVar(&localIP, "ip", "127.0.0.1", "Local IP address to bind to")
 	rootCmd.Flags().StringVar(&auth, "auth", "", "Enforce basic auth on tunnel (user:password)")
+	rootCmd.Flags().StringVar(&serverAddr, "server-addr", "", "FRP server address")
+	rootCmd.Flags().StringVarP(&domain, "domain", "d", "", "Tunnel domain (default: t.lum.tools, premium: lrok.space)")
 
 	// Flags for http command (same as root)
 	httpCmd.Flags().IntVarP(&port, "port", "p", 0, "Local port to expose (optional if provided as argument)")
@@ -192,6 +196,8 @@ func init() {
 	httpCmd.Flags().StringVarP(&apiKey, "api-key", "k", "", "API key")
 	httpCmd.Flags().StringVar(&localIP, "ip", "127.0.0.1", "Local IP to bind to")
 	httpCmd.Flags().StringVar(&auth, "auth", "", "Enforce basic auth on tunnel (user:password)")
+	httpCmd.Flags().StringVar(&serverAddr, "server-addr", "", "FRP server address")
+	httpCmd.Flags().StringVarP(&domain, "domain", "d", "", "Tunnel domain (default: t.lum.tools, premium: lrok.space)")
 
 	rootCmd.AddCommand(httpCmd)
 	rootCmd.AddCommand(tcpCmd)
@@ -287,6 +293,28 @@ Or pass it directly:
 	// Show API key source for transparency (debug mode or verbose)
 	_ = apiKeySource // Used for debugging, currently unused in output
 
+	// Validate and normalize domain
+	tunnelDomain := config.DefaultDomain
+	if domain != "" {
+		domain = strings.ToLower(strings.TrimSpace(domain))
+		switch domain {
+		case "lrok.space", "premium":
+			tunnelDomain = config.PremiumDomain
+		case "t.lum.tools", "default", "free":
+			tunnelDomain = config.DefaultDomain
+		default:
+			return fmt.Errorf(`❌ Invalid domain: %s
+
+Available domains:
+  t.lum.tools    Free tier (default)
+  lrok.space     Premium tier (Pro subscription required)
+
+Examples:
+  lrok 8000                          # Use default domain
+  lrok 8000 --domain lrok.space      # Use premium domain`, domain)
+		}
+	}
+
 	// Determine subdomain and track if explicitly specified
 	tunnelName := name
 	explicitSubdomain := false
@@ -301,7 +329,7 @@ Or pass it directly:
 		// explicitSubdomain remains false for randomly generated names
 	}
 
-	tunnelURL := fmt.Sprintf("https://%s.t.lum.tools", tunnelName)
+	tunnelURL := fmt.Sprintf("https://%s.%s", tunnelName, tunnelDomain)
 
 	// Start reverse proxy for request inspection
 	fmt.Println("🔄 Starting request inspector proxy...")
@@ -334,6 +362,8 @@ Or pass it directly:
 		ExplicitSubdomain: explicitSubdomain,
 		AuthUser:          authUser,
 		AuthPassword:      authPassword,
+		ServerAddr:        serverAddr,
+		Domain:            tunnelDomain,
 	}
 
 	configPath, err := config.GenerateTOML(cfg)
