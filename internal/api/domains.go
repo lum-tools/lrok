@@ -242,3 +242,66 @@ func (c *DomainsClient) ValidateCustomDomain(domain string) error {
 
 	return nil
 }
+
+// CertificateStatusResponse represents the API response for certificate status
+type CertificateStatusResponse struct {
+	Domain            string `json:"domain"`
+	CertificateStatus string `json:"certificate_status"`
+	Verified          bool   `json:"verified"`
+	Certificate       *struct {
+		Issuer    string `json:"issuer"`
+		Type      string `json:"type"`
+		AutoRenew bool   `json:"auto_renew"`
+	} `json:"certificate,omitempty"`
+}
+
+// GetCertificateStatus fetches the TLS certificate status for a domain
+func (c *DomainsClient) GetCertificateStatus(domainID string) (*CertificateStatusResponse, error) {
+	resp, err := c.doRequest("GET", "/api/domains/"+url.PathEscape(domainID)+"/certificate", nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("domain not found")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var apiErr APIError
+		if err := json.NewDecoder(resp.Body).Decode(&apiErr); err != nil {
+			return nil, fmt.Errorf("API error (status %d)", resp.StatusCode)
+		}
+		return nil, fmt.Errorf("%s", apiErr.Error)
+	}
+
+	var result CertificateStatusResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ProvisionCertificate requests TLS certificate provisioning for a verified domain
+func (c *DomainsClient) ProvisionCertificate(domainID string) error {
+	resp, err := c.doRequest("POST", "/api/domains/"+url.PathEscape(domainID)+"/certificate", nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("domain not found")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var apiErr APIError
+		if err := json.NewDecoder(resp.Body).Decode(&apiErr); err != nil {
+			return fmt.Errorf("API error (status %d)", resp.StatusCode)
+		}
+		return fmt.Errorf("%s", apiErr.Error)
+	}
+
+	return nil
+}

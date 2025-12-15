@@ -66,11 +66,26 @@ This will stop any tunnels currently using this domain.`,
 	RunE: runDomainsDelete,
 }
 
+var domainsCertCmd = &cobra.Command{
+	Use:   "cert <domain>",
+	Short: "Check TLS certificate status",
+	Long: `Check the TLS certificate status for a custom domain.
+
+After domain verification, lrok automatically provisions a 
+TLS certificate via Let's Encrypt for HTTPS support.
+
+Example:
+  lrok domains cert tunnel.mycompany.com`,
+	Args: cobra.ExactArgs(1),
+	RunE: runDomainsCert,
+}
+
 func init() {
 	domainsCmd.AddCommand(domainsListCmd)
 	domainsCmd.AddCommand(domainsAddCmd)
 	domainsCmd.AddCommand(domainsVerifyCmd)
 	domainsCmd.AddCommand(domainsDeleteCmd)
+	domainsCmd.AddCommand(domainsCertCmd)
 }
 
 func runDomainsList(cmd *cobra.Command, args []string) error {
@@ -95,16 +110,17 @@ func runDomainsList(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	fmt.Println("Your Custom Domains")
-	fmt.Println("─────────────────────────────────────────────────────")
-	fmt.Printf("%-30s %-15s %-20s\n", "DOMAIN", "STATUS", "VERIFIED AT")
+	fmt.Println("───────────────────────────────────────────────────────────────────")
+	fmt.Printf("%-30s %-15s %-12s %-14s\n", "DOMAIN", "STATUS", "TLS", "VERIFIED AT")
 
 	for _, d := range result.Domains {
 		status := formatStatus(d.Status)
+		tlsStatus := formatTLSStatus(d.TLSStatus)
 		verifiedAt := "-"
 		if d.VerifiedAt != nil {
 			verifiedAt = d.VerifiedAt.Format("2006-01-02")
 		}
-		fmt.Printf("%-30s %-15s %-20s\n", d.Domain, status, verifiedAt)
+		fmt.Printf("%-30s %-15s %-12s %-14s\n", d.Domain, status, tlsStatus, verifiedAt)
 	}
 
 	fmt.Println()
@@ -123,6 +139,21 @@ func formatStatus(status string) string {
 		return "🔄 verifying"
 	case "pending":
 		return "⏳ pending"
+	default:
+		return status
+	}
+}
+
+func formatTLSStatus(status string) string {
+	switch status {
+	case "issued", "active":
+		return "🔐 active"
+	case "pending", "provisioning":
+		return "🔄 pending"
+	case "failed":
+		return "❌ failed"
+	case "none", "":
+		return "⏳ none"
 	default:
 		return status
 	}
@@ -243,6 +274,58 @@ func runDomainsDelete(cmd *cobra.Command, args []string) error {
 
 	// Small delay for better UX
 	time.Sleep(100 * time.Millisecond)
+
+	return nil
+}
+
+func runDomainsCert(cmd *cobra.Command, args []string) error {
+	apiKey, err := getAPIKey()
+	if err != nil {
+		return err
+	}
+
+	domainID := args[0]
+
+	fmt.Println("🔐 Checking certificate status...")
+	fmt.Println()
+
+	client := api.NewDomainsClient(apiKey)
+	result, err := client.GetCertificateStatus(domainID)
+	if err != nil {
+		return fmt.Errorf("failed to get certificate status: %w", err)
+	}
+
+	fmt.Printf("Domain: %s\n", result.Domain)
+	fmt.Printf("Verified: %v\n", result.Verified)
+	fmt.Println()
+
+	switch result.CertificateStatus {
+	case "issued":
+		fmt.Println("✅ TLS Certificate: Active")
+		if result.Certificate != nil {
+			fmt.Printf("   Issuer: %s\n", result.Certificate.Issuer)
+			fmt.Printf("   Type: %s\n", result.Certificate.Type)
+			fmt.Printf("   Auto-renew: %v\n", result.Certificate.AutoRenew)
+		}
+	case "pending":
+		fmt.Println("🔄 TLS Certificate: Provisioning")
+		fmt.Println("   Certificate is being issued by Let's Encrypt.")
+		fmt.Println("   This typically takes 1-5 minutes.")
+	case "failed":
+		fmt.Println("❌ TLS Certificate: Failed")
+		fmt.Println("   Certificate provisioning failed.")
+		fmt.Println("   Ensure your domain CNAME points to frp.lum.tools")
+	case "none":
+		fmt.Println("⏳ TLS Certificate: Not Started")
+		if !result.Verified {
+			fmt.Println("   Domain must be verified first.")
+			fmt.Println("   Run: lrok domains verify <domain_id>")
+		} else {
+			fmt.Println("   Certificate will be provisioned automatically.")
+		}
+	default:
+		fmt.Printf("Certificate Status: %s\n", result.CertificateStatus)
+	}
 
 	return nil
 }
