@@ -34,10 +34,14 @@ type TunnelConfig struct {
 	AuthUser          string // Basic Auth User
 	AuthPassword      string // Basic Auth Password
 	Domain            string // Domain pool: t.lum.tools (default) or lrok.space (premium)
+	CustomDomain      string // BYOD: user's own domain like tunnel.example.com
 }
 
 // GetTunnelDomain returns the full tunnel domain
 func (cfg *TunnelConfig) GetTunnelDomain() string {
+	if cfg.CustomDomain != "" {
+		return cfg.CustomDomain
+	}
 	domain := cfg.Domain
 	if domain == "" {
 		domain = DefaultDomain
@@ -50,6 +54,10 @@ func (cfg *TunnelConfig) GetServerPort() int {
 	if cfg.ServerPort != 0 {
 		return cfg.ServerPort // User-specified port takes precedence
 	}
+	// Custom domains use the default server
+	if cfg.CustomDomain != "" {
+		return DefaultServerPort
+	}
 	if cfg.Domain == PremiumDomain {
 		return PremiumServerPort
 	}
@@ -58,12 +66,20 @@ func (cfg *TunnelConfig) GetServerPort() int {
 
 // GetTunnelURL returns the full tunnel URL
 func (cfg *TunnelConfig) GetTunnelURL() string {
+	if cfg.CustomDomain != "" {
+		return fmt.Sprintf("https://%s", cfg.CustomDomain)
+	}
 	return fmt.Sprintf("https://%s.%s", cfg.Subdomain, cfg.GetTunnelDomain())
 }
 
 // IsPremiumDomain checks if using premium domain pool
 func (cfg *TunnelConfig) IsPremiumDomain() bool {
 	return cfg.Domain == PremiumDomain
+}
+
+// IsCustomDomain checks if using a BYOD custom domain
+func (cfg *TunnelConfig) IsCustomDomain() bool {
+	return cfg.CustomDomain != ""
 }
 
 // GenerateTOML creates a frpc TOML configuration file and returns the path
@@ -90,6 +106,11 @@ func GenerateTOML(cfg *TunnelConfig) (string, error) {
 	// Add explicit_subdomain flag if user explicitly specified subdomain
 	if cfg.ExplicitSubdomain {
 		metadataLines = append(metadataLines, `metadatas.explicit_subdomain = "true"`)
+	}
+
+	// Add custom domain flag for BYOD
+	if cfg.CustomDomain != "" {
+		metadataLines = append(metadataLines, fmt.Sprintf(`metadatas.custom_domain = "%s"`, cfg.CustomDomain))
 	}
 
 	if cfg.AuthUser != "" && cfg.AuthPassword != "" {
@@ -119,13 +140,24 @@ func GenerateTOML(cfg *TunnelConfig) (string, error) {
 	var proxyConfig string
 	switch cfg.ProxyType {
 	case "http", "https":
-		proxyConfig = fmt.Sprintf(`[[proxies]]
+		// For custom domains, use customDomains instead of subdomain
+		if cfg.CustomDomain != "" {
+			proxyConfig = fmt.Sprintf(`[[proxies]]
+name = "tunnel-%s"
+type = "%s"
+localIP = "%s"
+localPort = %d
+customDomains = ["%s"]`,
+				cfg.Subdomain, cfg.ProxyType, cfg.LocalIP, cfg.LocalPort, cfg.CustomDomain)
+		} else {
+			proxyConfig = fmt.Sprintf(`[[proxies]]
 name = "tunnel-%s"
 type = "%s"
 localIP = "%s"
 localPort = %d
 subdomain = "%s"`,
-			cfg.Subdomain, cfg.ProxyType, cfg.LocalIP, cfg.LocalPort, cfg.Subdomain)
+				cfg.Subdomain, cfg.ProxyType, cfg.LocalIP, cfg.LocalPort, cfg.Subdomain)
+		}
 
 		if cfg.AuthUser != "" && cfg.AuthPassword != "" {
 			proxyConfig += fmt.Sprintf("\nhttpUser = \"%s\"", cfg.AuthUser)

@@ -202,3 +202,43 @@ func (c *DomainsClient) DeleteDomain(domainID string) error {
 
 	return nil
 }
+
+// ValidateCustomDomain checks if a domain is verified and owned by the current user
+func (c *DomainsClient) ValidateCustomDomain(domain string) error {
+	resp, err := c.doRequest("GET", "/api/domains/check?domain="+url.QueryEscape(domain), nil)
+	if err != nil {
+		return fmt.Errorf("failed to validate domain: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return fmt.Errorf("domain not found or not verified")
+	}
+
+	if resp.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("domain is registered to another account")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("domain validation failed")
+	}
+
+	// Check if domain is active
+	var result struct {
+		Exists bool   `json:"exists"`
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("failed to parse validation response: %w", err)
+	}
+
+	if !result.Exists {
+		return fmt.Errorf("domain not found")
+	}
+
+	if result.Status != "active" && result.Status != "verified" {
+		return fmt.Errorf("domain not yet verified (status: %s)", result.Status)
+	}
+
+	return nil
+}

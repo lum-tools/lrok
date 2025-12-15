@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lum-tools/lrok/internal/api"
 	"github.com/lum-tools/lrok/internal/config"
 	"github.com/lum-tools/lrok/internal/dashboard"
 	"github.com/lum-tools/lrok/internal/names"
@@ -296,6 +297,7 @@ Or pass it directly:
 
 	// Validate and normalize domain
 	tunnelDomain := config.DefaultDomain
+	customDomain := "" // For BYOD domains
 	if domain != "" {
 		domain = strings.ToLower(strings.TrimSpace(domain))
 		switch domain {
@@ -304,15 +306,38 @@ Or pass it directly:
 		case "t.lum.tools", "default", "free":
 			tunnelDomain = config.DefaultDomain
 		default:
-			return fmt.Errorf(`❌ Invalid domain: %s
+			// Check if it's a custom BYOD domain
+			if strings.Contains(domain, ".") {
+				// This looks like a custom domain - validate via API
+				fmt.Println("🔍 Validating custom domain...")
+				client := api.NewDomainsClient(apiKey)
+				err := client.ValidateCustomDomain(domain)
+				if err != nil {
+					return fmt.Errorf(`❌ %s
+
+To use a custom domain:
+1. Add it:    lrok domains add %s
+2. Verify:    lrok domains verify <domain_id>
+3. Use it:    lrok 8000 --domain %s
+
+Manage domains: https://lrok.lum.tools/domains`, err, domain, domain)
+				}
+				customDomain = domain
+				tunnelDomain = "" // No pool domain for BYOD
+				fmt.Printf("✅ Custom domain verified: %s\n", domain)
+			} else {
+				return fmt.Errorf(`❌ Invalid domain: %s
 
 Available domains:
   t.lum.tools    Free tier (default)
   lrok.space     Premium tier (Pro subscription required)
+  <your-domain>  Custom BYOD domain (Pro subscription required)
 
 Examples:
-  lrok 8000                          # Use default domain
-  lrok 8000 --domain lrok.space      # Use premium domain`, domain)
+  lrok 8000                                # Use default domain
+  lrok 8000 --domain lrok.space            # Use premium domain
+  lrok 8000 --domain tunnel.example.com    # Use your own domain`, domain)
+			}
 		}
 	}
 
@@ -325,12 +350,20 @@ Examples:
 	} else if name != "" {
 		explicitSubdomain = true
 	}
-	if tunnelName == "" {
-		tunnelName = names.Generate()
-		// explicitSubdomain remains false for randomly generated names
+	
+	// For custom domains, we don't need a subdomain/name
+	var tunnelURL string
+	if customDomain != "" {
+		tunnelURL = fmt.Sprintf("https://%s", customDomain)
+		tunnelName = customDomain // Use full domain as identifier
+		explicitSubdomain = true // Custom domains are always explicit
+	} else {
+		if tunnelName == "" {
+			tunnelName = names.Generate()
+			// explicitSubdomain remains false for randomly generated names
+		}
+		tunnelURL = fmt.Sprintf("https://%s.%s", tunnelName, tunnelDomain)
 	}
-
-	tunnelURL := fmt.Sprintf("https://%s.%s", tunnelName, tunnelDomain)
 
 	// Start reverse proxy for request inspection
 	fmt.Println("🔄 Starting request inspector proxy...")
@@ -365,6 +398,7 @@ Examples:
 		AuthPassword:      authPassword,
 		ServerAddr:        serverAddr,
 		Domain:            tunnelDomain,
+		CustomDomain:      customDomain,
 	}
 
 	configPath, err := config.GenerateTOML(cfg)
