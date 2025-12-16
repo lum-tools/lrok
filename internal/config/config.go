@@ -221,10 +221,6 @@ localPort = %d`,
 serverAddr = "%s"
 serverPort = %d
 
-# Authentication
-auth.method = "token"
-auth.token = "%s"
-
 log.level = "info"
 
 # Pass configuration in metadata for plugin authentication and tracking
@@ -234,7 +230,6 @@ log.level = "info"
 `,
 		cfg.ServerAddr,
 		serverPort,
-		cfg.APIKey,
 		strings.Join(metadataLines, "\n"),
 		proxyConfig,
 	)
